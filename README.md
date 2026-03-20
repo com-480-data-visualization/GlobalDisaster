@@ -87,6 +87,9 @@ This paper focuses on a specific type of disaster : flood events. They briefly c
 
 This paper tries to refine the geolocalisation of the disaster events with a more precise localisation. The EM-DAT dataset provides a localisation by countries, but for a more accurate analysis, subnational localisation convey more information. To obtain the precise location, they use the geolocalisation information of EM-DAT given under textual and unstructured format. To get from this unstructured information to some geolocalisation they use LLM (in their case GPT-4o) and assign geocode using some open map repositories. They succeeded to code 14.000+ disasters (over ~18.000 in the dataset) automatically.
 
+##### Our work :
+
+Our work offers different view on this dataset : the objective of our work is to have easy to use website with good and interactive visualization. As the first cited work we conduct a general analysis on the different patterns that we can observe. However we would like to obtain more interactive and intuitive visualizations. We could take the idea from the second work to link our data with external informations on country like GDP, and we could use the subnational geolocalisation from the last work to get a more precise localisation.
 
 ## Milestone 2 (17th April, 5pm)
 
