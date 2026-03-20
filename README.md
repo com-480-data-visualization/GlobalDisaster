@@ -83,6 +83,11 @@ This paper conducts a quite generic analysis of the dataset, exploring different
 
 This paper focuses on a specific type of disaster : flood events. They briefly compare floods to other disaster type, and explore the different tendencies in flood disaster : casualties, economical impact... They also analyze that there is more floods, but they adress the limitation about the registration of data : disaster events are more and better registrated today than in the years of the beginning of the dataset (1980's). The main finding is that floods have become less deathly over time, mainly due to better infrastructures.
 
+##### Subnational Geocoding of Global Disasters Using Large Language Models by M. Roncoa, D. Delforgeb, W. S. J¨agerc, C. Corbanea
+
+This paper tries to refine the geolocalisation of the disaster events with a more precise localisation. The EM-DAT dataset provides a localisation by countries, but for a more accurate analysis, subnational localisation convey more information. To obtain the precise location, they use the geolocalisation information of EM-DAT given under textual and unstructured format. To get from this unstructured information to some geolocalisation they use LLM (in their case GPT-4o) and assign geocode using some open map repositories. They succeeded to code 14.000+ disasters (over ~18.000 in the dataset) automatically.
+
+
 ## Milestone 2 (17th April, 5pm)
 
 **10% of the final grade**
