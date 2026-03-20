@@ -20,28 +20,19 @@ Please, fill the following sections about your project.
 
 ### Dataset
 
-> Find a dataset (or multiple) that you will explore. Assess the quality of the data it contains and how much preprocessing / data-cleaning it will require before tackling visualization. We recommend using a standard dataset as this course is not about scraping nor data processing.
->
-> Hint: some good pointers for finding quality publicly available datasets ([Google dataset search](https://datasetsearch.research.google.com/), [Kaggle](https://www.kaggle.com/datasets), [OpenSwissData](https://opendata.swiss/en/), [SNAP](https://snap.stanford.edu/data/) and [FiveThirtyEight](https://data.fivethirtyeight.com/)).
-
 For our project, we chose the em-dat dataset, provided by the centre for research on the epidemiology of disasters (cred). em-dat is an open-access database for non-commercial use that tracks disasters worldwide, based on sources such as un agencies, ngos, research institutes, reinsurance companies, and press agencies. While the full database contains more than 27,000 disaster records, our work focuses only on natural disasters, which gives us a dataset of around 17,000 records.
+
+emdat dataset : https://www.emdat.be/
 
 We chose this dataset because it is large, well known, and contains useful variables for visualization, such as disaster type, country, year, deaths, affected people, and sometimes economic damage. From our first exploration, the dataset seems overall good quality, but some columns have many missing values, especially for older events and for variables like costs or coordinates. Because of that, some preprocessing will be needed, mainly cleaning missing values, formatting dates, and keeping the most complete variables.
 
 ### Problematic
-
-> Frame the general topic of your visualization and the main axis that you want to develop.
-> - What am I trying to show with my visualization?
-> - Think of an overview for the project, your motivation, and the target audience.
 
 With this project, we want to show how recorded natural disasters are distributed across time and space, and how their effects can vary depending on the region and the type of disaster. Our main idea is to help people see the bigger picture: not only where disasters are reported, but also which ones seem to have the strongest human impact.
 
 Our motivation comes from the fact that natural disasters are usually seen one by one in the news, while the global patterns are less visible. At the same time, we want to be careful not to over-interpret the data, since a higher number of recorded events does not always mean that disasters truly became more frequent, but can also reflect better reporting over time. Using this dataset, we want to build a visualization that makes these patterns easier to explore and understand while keeping these limits in mind. Our target audience is mainly the general public who want a simple and interactive way to learn more about natural disasters.
 
 ### Exploratory Data Analysis
-
-> Pre-processing of the data set you chose
-> - Show some basic statistics and get insights about the data
 
 Our first exploratory analysis was mainly used to check the structure of the dataset and identify which variables are the most reliable for the project. After cleaning the column names and inspecting the table, we found that the dataset is overall well structured. In particular, we did not find duplicated rows or duplicated disaster ids, which is a good sign for consistency. The main descriptive variables that we want to use, such as country, region, disaster type, and year, are generally complete enough for visualization.
 <p align="center">
@@ -67,12 +58,6 @@ Finally, the spatial distribution of the data is very uneven. Some countries, su
 
 ### Related work
 
-
-> - What others have already done with the data?
-> - Why is your approach original?
-> - What source of inspiration do you take? Visualizations that you found on other websites or magazines (might be unrelated to your data).
-> - In case you are using a dataset that you have already explored in another context (ML or ADA course, semester project...), you are required to share the report of that work to outline the differences with the submission for this class.
-
 This public dataset has already been studied several times with interesting insights. Here are few works and the main conclusions that they bring : 
 
 ##### **Natural disasters: a comprehensive study using EMDAT database 1995-2022**, by D.Tin, L. Cheng, D. Le, R. Hata, G. Ciottone.
@@ -86,6 +71,12 @@ This paper focuses on a specific type of disaster : flood events. They briefly c
 ##### Subnational Geocoding of Global Disasters Using Large Language Models by M. Roncoa, D. Delforgeb, W. S. Jägerc, C. Corbanea
 
 This paper tries to refine the geolocalisation of the disaster events with a more precise localisation. The EM-DAT dataset provides a localisation by countries, but for a more accurate analysis, subnational localisation convey more information. To obtain the precise location, they use the geolocalisation information of EM-DAT given under textual and unstructured format. To get from this unstructured information to some geolocalisation they use LLM (in their case GPT-4o) and assign geocode using some open map repositories. They succeeded to code 14.000+ disasters (over ~18.000 in the dataset) automatically.
+
+##### Inspiration for visualization
+
+Having an immersive map, like a sphere can be interesting for the representation of a global dataset : https://mapsplatform.google.com/demos/3d-maps/
+A fun idea would be to distort proportionally to how concerned regions are : https://worldmapper.org/maps/
+Different interesting visualizations : https://flourish.studio/visualisations/maps/
 
 ##### Our work :
 
