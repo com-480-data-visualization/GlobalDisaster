@@ -74,9 +74,9 @@ This paper tries to refine the geolocalisation of the disaster events with a mor
 
 ##### Inspiration for visualization
 
-Having an immersive map, like a sphere can be interesting for the representation of a global dataset : https://mapsplatform.google.com/demos/3d-maps/
-A fun idea would be to distort proportionally to how concerned regions are : https://worldmapper.org/maps/
-Different interesting visualizations : https://flourish.studio/visualisations/maps/
+> Having an immersive map, like a sphere can be interesting for the representation of a global dataset : https://mapsplatform.google.com/demos/3d-maps/
+> A fun idea would be to distort proportionally to how concerned regions are : https://worldmapper.org/maps/
+> Different interesting visualizations : https://flourish.studio/visualisations/maps/
 
 ##### Our work :
 
