@@ -73,6 +73,16 @@ Finally, the spatial distribution of the data is very uneven. Some countries, su
 > - What source of inspiration do you take? Visualizations that you found on other websites or magazines (might be unrelated to your data).
 > - In case you are using a dataset that you have already explored in another context (ML or ADA course, semester project...), you are required to share the report of that work to outline the differences with the submission for this class.
 
+This public dataset has already been studied several times with interesting insights. Here are few works and the main conclusions that they bring : 
+
+- Natural disasters: a comprehensive study using EMDAT database 1995-2022, by D.Tin, L. Cheng, D. Le, R. Hata, G. Ciottone.
+
+This paper conducts a quite generic analysis of the dataset, exploring different features via different visualizations and different statistics. The main findings are the distribution in terms of casualties and injuries by continent and by disaster type. They find that the continent with most casualties is Asia, and the disaster type causing most deaths are the geophysical ones.
+
+- Floods have become less deadly: an analysis of global flood fatalities 1975–2022 by S. N. Jonkman, A. Curran, L. M. Bouwer
+
+This paper focuses on a specific type of disaster : flood events. They briefly compare floods to other disaster type, and explore the different tendencies in flood disaster : casualties, economical impact... They also analyze that there is more floods, but they adress the limitation about the registration of data : disaster events are more and better registrated today than in the years of the beginning of the dataset (1980's). The main finding is that floods have become less deathly over time, mainly due to better infrastructures.
+
 ## Milestone 2 (17th April, 5pm)
 
 **10% of the final grade**
