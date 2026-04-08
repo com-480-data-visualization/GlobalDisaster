@@ -1,0 +1,19 @@
+body { margin: 0; padding: 0; }
+#map { width: 100vw; height: 100vh; }
+
+.panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 350px;
+    height: 100vh;
+    background: white;
+    padding: 20px;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+    z-index: 1;
+    overflow-y: auto;
+}
+
+.hidden {
+    display: none;
+}
