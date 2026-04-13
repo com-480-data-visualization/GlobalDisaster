@@ -3,17 +3,80 @@ body { margin: 0; padding: 0; }
 
 .panel {
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 350px;
-    height: 100vh;
+    width: 300px;
+    border-radius: 20px;
     background: white;
     padding: 20px;
-    box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+    box-shadow:  0 4px 20px rgba(0,0,0,0.12);
     z-index: 1;
     overflow-y: auto;
+    cursor: grab;
+    min-height: 200px; 
+    max-height: 60vh;
+}
+
+.panel:active {
+    cursor: grabbing;
+}
+
+/* have header for the country panel design */
+.panel-header {
+    display: grid;
+    grid-template-columns: 24px 1fr 60px; 
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.panel-header h2 {
+    text-align: center;
+    margin: 0;
+    font-size: 16px;
+}
+
+.panel-header img {
+    width: 48px;
+    border-radius: 4px;
+    justify-self: end;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
 }
 
 .hidden {
     display: none;
+}
+
+#controls {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 2;
+    display: flex;
+    gap: 8px;
+}
+
+#controls button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 20px;
+    background: #1f3b73; 
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#controls button:hover {
+    background: #2c5aa0;
+}
+
+#controls button.active {
+    background: #cf8e81; 
 }
