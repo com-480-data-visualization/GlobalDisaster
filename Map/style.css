@@ -8,6 +8,7 @@ body { margin: 0; padding: 0; }
     background: white;
     padding: 20px;
     box-shadow:  0 4px 20px rgba(0,0,0,0.12);
+    border: 2px solid #c6c6c6;
     z-index: 1;
     overflow-y: auto;
     cursor: grab;
@@ -30,7 +31,11 @@ body { margin: 0; padding: 0; }
 .panel-header h2 {
     text-align: center;
     margin: 0;
-    font-size: 16px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: #1f3b73;
 }
 
 .panel-header img {
@@ -78,5 +83,80 @@ body { margin: 0; padding: 0; }
 }
 
 #controls button.active {
-    background: #cf8e81; 
+    background: #e3bb80; 
+}
+
+#top20-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.top20-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 2px;
+}
+
+.top20-badge {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fff8f0, #fff3e6);
+    border-left: 4px solid #f5a623;
+    animation: slideIn 0.3s ease forwards;
+    opacity: 0;
+}
+
+.badge-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.rank {
+    font-size: 11px;
+    font-weight: 700;
+    color: #f5a623;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.badge-year {
+    font-size: 11px;
+    color: #bbb;
+}
+
+.badge-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f3b73;
+}
+
+.badge-bottom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 2px;
+}
+
+.badge-type {
+    font-size: 11px;
+    color: #999;
+}
+
+.badge-deaths {
+    font-size: 12px;
+    font-weight: 600;
+    color: #c0392b;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
 }

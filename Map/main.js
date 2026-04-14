@@ -4,6 +4,7 @@ let globeActive = false;
 let countryActive = false;
 let hoveredId = null;
 let countryCounts = null;
+let selectedId = null;
 
 const map = new mapboxgl.Map({
     container: 'map',
@@ -101,6 +102,20 @@ map.on('load', async () => {
 
         if (!countryActive) return;
 
+        //color only clicked country
+        if (selectedId !== null) { 
+        map.setFeatureState(
+            { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
+            { selected: false }
+        );
+    }
+
+    selectedId = e.features[0].id;
+    map.setFeatureState(
+        { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
+        { selected: true }
+    );
+
         clearHover();
         openPanel(e.features[0].properties, e.features[0].geometry);
     });
@@ -114,10 +129,9 @@ map.on('load', async () => {
 
 //panel functions
 function openPanel(country, geometry) {
-    //console.log(country);
     const panel = document.getElementById('panel');
 
-    const coords = geometry.type === 'MultiPolygon' //get country coordinates foor panel pos
+    const coords = geometry.type === 'MultiPolygon'
         ? geometry.coordinates.flat(2)
         : geometry.coordinates.flat(1);
 
@@ -125,23 +139,67 @@ function openPanel(country, geometry) {
     const lats = coords.map(c => c[1]);
 
     const maxLng = Math.max(...lngs);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const midLat = (minLat + maxLat) / 2;  
+    const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
 
     const point = map.project([maxLng, midLat]);
 
-    panel.style.left = (point.x + 20) + 'px';
-    panel.style.top = (point.y - 100) + 'px'; //move the panel a bit to the top to align with country
+    panel.classList.remove('hidden');
 
-    const iso2 = country.iso_3166_1.toLowerCase(); //for country flag
+    const panelW = panel.offsetWidth;
+    const panelH = panel.offsetHeight;
+    const margin = 12;
+
+    const left = Math.min(point.x + 20, window.innerWidth  - panelW - margin);
+    const top  = Math.min(point.y - 100, window.innerHeight - panelH - margin);
+
+    panel.style.left = Math.max(margin, left) + 'px';
+    panel.style.top  = Math.max(margin, top)  + 'px';
+
+    const iso2 = country.iso_3166_1.toLowerCase();
+    const iso3 = country.iso_3166_1_alpha_3;
+
     document.getElementById('country-name').innerText = country.name_en;
     document.getElementById('country-flag').src = `https://flagcdn.com/w80/${iso2}.png`;
-    panel.classList.remove('hidden');
+
+    // top 20 deadliest events
+    const hits = TOP20.filter(d => d.ISO === iso3);
+    const container = document.getElementById('top20-container');
+
+    if (hits.length > 0) {
+        container.innerHTML = `<div class="top20-section-title">Deadliest Disasters</div>`;
+        hits.forEach((d, i) => {
+            const name = d.Event_Name || d.Disaster_Type;
+            const badge = document.createElement('div');
+            badge.className = 'top20-badge';
+            badge.style.animationDelay = `${i * 0.08}s`;
+            badge.innerHTML = `
+                <div class="badge-top-row">
+                    <span class="rank">#${d.rank} Globally</span>
+                    <span class="badge-year">${d.Start_Year}</span>
+                </div>
+                <div class="badge-name">${name}</div>
+                <div class="badge-bottom-row">
+                    <span class="badge-type">${d.Disaster_Type}</span>
+                    <span class="badge-deaths"> ${d.Total_Deaths.toLocaleString()} deaths</span>
+                </div>
+            `;
+            container.appendChild(badge);
+        });
+    } else {
+        container.innerHTML = '';
+    }
 }
 
 function closePanel() {
     document.getElementById('panel').classList.add('hidden');
+
+    if (selectedId !== null) {
+        map.setFeatureState(
+            { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
+            { selected: false }
+        );
+        selectedId = null;
+    }
 }
 
 //make the panel draggable
@@ -244,6 +302,7 @@ function updateMap() {
             'case',
             ['boolean', ['feature-state', 'hover'], false],
             '#aaaaaa',
+            ['boolean', ['feature-state', 'selected'], false], '#e3bb80',
             '#ffffff'
         ]);
     
@@ -282,7 +341,7 @@ function updateMap() {
 
         ['boolean', ['feature-state', 'hover'], false],
         '#aaaaaa',
-
+        ['boolean', ['feature-state', 'selected'], false], '#e3bb80',
         choropleth
     ]);
 }
