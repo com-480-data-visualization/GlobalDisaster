@@ -10,10 +10,11 @@ body { margin: 0; padding: 0; }
     box-shadow:  0 4px 20px rgba(0,0,0,0.12);
     border: 2px solid #c6c6c6;
     z-index: 1;
-    overflow-y: auto;
     cursor: grab;
     min-height: 200px; 
     max-height: 60vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .panel:active {
@@ -25,7 +26,15 @@ body { margin: 0; padding: 0; }
     display: grid;
     grid-template-columns: 24px 1fr 60px; 
     align-items: center;
-    margin-bottom: 16px;
+    padding: 20px 20px 12px 20px;  
+    border-bottom: 1px solid #efefef;
+    flex-shrink: 0;
+}
+
+.panel-body {
+    overflow-y: auto;  /* only this part scrolls */
+    padding: 14px 20px 20px 20px;
+    flex: 1;
 }
 
 .panel-header h2 {
@@ -86,29 +95,29 @@ body { margin: 0; padding: 0; }
     background: #e3bb80; 
 }
 
-#top20-container {
+#worst-by-country-container {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.top20-section-title {
+.worst-by-country-section-title {
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #aaa;
+    color: #888;
     margin-bottom: 2px;
 }
 
-.top20-badge {
+.worst-by-country-badge {
     display: flex;
     flex-direction: column;
     gap: 4px;
     padding: 12px 14px;
     border-radius: 12px;
     background: linear-gradient(135deg, #fff8f0, #fff3e6);
-    border-left: 4px solid #f5a623;
+    border-left: 3px solid #f5a623;
     animation: slideIn 0.3s ease forwards;
     opacity: 0;
 }
@@ -128,12 +137,12 @@ body { margin: 0; padding: 0; }
 }
 
 .badge-year {
-    font-size: 11px;
-    color: #bbb;
+    font-size: 15px;
+    color: #888;
 }
 
 .badge-name {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     color: #1f3b73;
 }
@@ -147,11 +156,11 @@ body { margin: 0; padding: 0; }
 
 .badge-type {
     font-size: 11px;
-    color: #999;
+    color: #888;
 }
 
 .badge-deaths {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: #c0392b;
 }

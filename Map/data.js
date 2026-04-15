@@ -1,5 +1,5 @@
 let DATA = [];
-let TOP20 = [];
+let WORST_BY_COUNTRY = [];
 
 async function loadData() {
     console.log(DATA[0])
@@ -11,7 +11,7 @@ async function loadData() {
     const raw = XLSX.utils.sheet_to_json(sheet);
 
     DATA = raw.map(cleanColumns);
-    computeTop20();
+    computeWorstByCountry();
 
     console.log("DATA LOADED:", DATA.length);
     console.log(DATA[0]); 
@@ -19,12 +19,15 @@ async function loadData() {
     return DATA;
 }
 
-function computeTop20() {
-    TOP20 = [...DATA]
-        .filter(d => d.Total_Deaths > 0)
-        .sort((a, b) => b.Total_Deaths - a.Total_Deaths)
-        .slice(0, 20)
-        .map((d, i) => ({ ...d, rank: i + 1 }));
+function computeWorstByCountry() {
+    const byCountry = {};
+    DATA.filter(d => d.Total_Deaths > 0).forEach(d => {
+        if (!d.ISO) return;
+        if (!byCountry[d.ISO] || d.Total_Deaths > byCountry[d.ISO].Total_Deaths)
+            byCountry[d.ISO] = d;
+    });
+    WORST_BY_COUNTRY = Object.values(byCountry);
+    return WORST_BY_COUNTRY;
 }
 
 function cleanColumns(row) {
