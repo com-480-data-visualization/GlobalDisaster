@@ -5,6 +5,13 @@ let countryActive = false;
 let hoveredId = null;
 let countryCounts = null;
 let selectedId = null;
+let selectedFeature = null;
+
+const featureComputers = {
+    'option-a': () => null,
+    'option-b': () => null,
+    'option-c': () => null
+};
 
 const map = new mapboxgl.Map({
     container: 'map',
@@ -15,6 +22,7 @@ const map = new mapboxgl.Map({
 
 map.on('load', async () => {
 
+    setupFeaturePanel();
     await loadData();
 
     //get Mapbox country boundaries
@@ -125,6 +133,32 @@ map.on('load', async () => {
 
 
 });
+
+function setupFeaturePanel() {
+    const featureInputs = document.querySelectorAll('input[name="feature"]');
+
+    featureInputs.forEach(input => {
+        input.addEventListener('change', () => {
+            selectedFeature = input.checked ? input.value : null;
+
+            featureInputs.forEach(otherInput => {
+                if (otherInput !== input) {
+                    otherInput.checked = false;
+                }
+            });
+
+            updateMap();
+        });
+    });
+}
+
+function getSelectedFeatureData() {
+    if (!selectedFeature) return null;
+
+    const computeFeatureData = featureComputers[selectedFeature];
+
+    return computeFeatureData ? computeFeatureData() : null;
+}
 
 
 //panel functions
@@ -272,6 +306,7 @@ function getCountryCounts() {
 
 //choropleth map for global disaster view
 function updateMap() {
+    getSelectedFeatureData();
 
     if (!globeActive) {
         clearHover();

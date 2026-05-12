@@ -17,6 +17,24 @@
 <body>
     <div id="map"></div>
 
+    <aside id="feature-panel" class="feature-panel">
+        <h2>Feature to visualize</h2>
+        <div class="feature-options" aria-label="Feature to visualize">
+            <label class="feature-option">
+                <input type="checkbox" name="feature" value="option-a">
+                <span>Option A</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" name="feature" value="option-b">
+                <span>Option B</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" name="feature" value="option-c">
+                <span>Option C</span>
+            </label>
+        </div>
+    </aside>
+
     <div id="controls">
         <button id="btn-globe" onclick="toggleGlobe()">Disasters on Globe</button>
         <button id="btn-country" onclick="toggleCountry()">Disasters in Countries</button>
