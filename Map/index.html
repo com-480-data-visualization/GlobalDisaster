@@ -21,16 +21,16 @@
         <h2>Feature to visualize</h2>
         <div class="feature-options" aria-label="Feature to visualize">
             <label class="feature-option">
-                <input type="checkbox" name="feature" value="option-a">
-                <span>Option A</span>
+                <input type="checkbox" name="feature" value="disaster-number" checked>
+                <span>Number of natural disasters</span>
             </label>
             <label class="feature-option">
-                <input type="checkbox" name="feature" value="option-b">
-                <span>Option B</span>
+                <input type="checkbox" name="feature" value="average-deaths">
+                <span>Average deaths per disaster</span>
             </label>
             <label class="feature-option">
-                <input type="checkbox" name="feature" value="option-c">
-                <span>Option C</span>
+                <input type="checkbox" name="feature" value="average-damage">
+                <span>Average economic losses per disaster</span>
             </label>
         </div>
     </aside>
@@ -39,6 +39,11 @@
         <button id="btn-globe" onclick="toggleGlobe()">Disasters on Globe</button>
         <button id="btn-country" onclick="toggleCountry()">Disasters in Countries</button>
     </div>
+
+    <aside id="heatmap-legend" class="heatmap-legend hidden" aria-label="Heatmap legend">
+        <h2>Natural disasters</h2>
+        <div id="heatmap-legend-items"></div>
+    </aside>
 
     <div id="panel" class="panel hidden">
     <div class="panel-header">
