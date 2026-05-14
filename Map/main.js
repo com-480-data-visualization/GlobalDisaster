@@ -23,7 +23,7 @@ const featureComputers = {
         colors: ['#ffffff', '#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15'],
         scale: 'log',
         legendTitle: 'Avg deaths / disaster (log scale)',
-        legendNoDataLabel: 'No deaths recorded',
+        legendNoDataLabel: 'No registered deaths data',
         legendFormatter: formatLegendNumber
     }),
     'average-damage': () => ({
@@ -31,7 +31,7 @@ const featureComputers = {
         colors: ['#ffffff', '#edf8e9', '#bae4b3', '#74c476', '#31a354', '#006d2c'],
         scale: 'log',
         legendTitle: 'Avg losses / disaster (log scale)',
-        legendNoDataLabel: 'No losses recorded',
+        legendNoDataLabel: 'No registered loss data',
         legendFormatter: formatLegendNumber
     }),
 };
@@ -329,11 +329,11 @@ function getNumericValue(disaster, columns) {
 
         if (value !== undefined && value !== null && value !== '') {
             const numberValue = Number(value);
-            return Number.isFinite(numberValue) ? numberValue : 0;
+            if (Number.isFinite(numberValue)) return numberValue;
         }
     }
 
-    return 0;
+    return null;
 }
 
 function roundMetricValue(value, decimals) {
@@ -348,7 +348,10 @@ function getAverageMetricByCountry(columns, decimals = 0) {
     DATA.filter(isNaturalDisaster).forEach(disaster => {
         if (!disaster.ISO) return;
 
-        totals[disaster.ISO] = (totals[disaster.ISO] || 0) + getNumericValue(disaster, columns);
+        const value = getNumericValue(disaster, columns);
+        if (value === null) return;
+
+        totals[disaster.ISO] = (totals[disaster.ISO] || 0) + value;
         counts[disaster.ISO] = (counts[disaster.ISO] || 0) + 1;
     });
 
