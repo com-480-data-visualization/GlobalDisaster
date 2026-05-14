@@ -6,8 +6,45 @@ let hoveredId = null;
 let countryCounts = null;
 let averageDeathsByCountry = null;
 let averageDamageByCountry = null;
+let dominantDisasterTypeByCountry = null;
 let selectedId = null;
 let selectedFeature = null;
+
+const disasterTypeOrder = [
+    'Wildfire',
+    'Mass movement (wet)',
+    'Flood',
+    'Storm',
+    'Earthquake',
+    'Drought',
+    'Epidemic',
+    'Volcanic activity',
+    'Glacial lake outburst flood',
+    'Extreme temperature',
+    'Mass movement (dry)',
+    'Infestation',
+    'Animal incident',
+    'Impact',
+    'Fog'
+];
+
+const disasterTypeColors = {
+    'Wildfire': '#d95f02',
+    'Mass movement (wet)': '#8c6d31',
+    'Flood': '#1f78b4',
+    'Storm': '#6a3d9a',
+    'Earthquake': '#7f3b08',
+    'Drought': '#e6ab02',
+    'Epidemic': '#1b9e77',
+    'Volcanic activity': '#b2182b',
+    'Glacial lake outburst flood': '#56b4e9',
+    'Extreme temperature': '#e7298a',
+    'Mass movement (dry)': '#a6761d',
+    'Infestation': '#66a61e',
+    'Animal incident': '#7570b3',
+    'Impact': '#4d4d4d',
+    'Fog': '#bdbdbd'
+};
 
 const featureComputers = {
     'disaster-number': () => ({
@@ -33,6 +70,14 @@ const featureComputers = {
         legendTitle: 'Avg losses / disaster (log scale)',
         legendNoDataLabel: 'No registered loss data',
         legendFormatter: formatLegendNumber
+    }),
+    'dominant-disaster-type': () => ({
+        values: getDominantDisasterTypeByCountry(),
+        colorsByValue: disasterTypeColors,
+        typeOrder: disasterTypeOrder,
+        legendTitle: 'Most represented type',
+        legendNoDataLabel: 'No data',
+        legendType: 'categorical'
     }),
 };
 
@@ -404,6 +449,46 @@ function getAverageDamageByCountry() {
     return averageDamageByCountry;
 }
 
+function getDominantDisasterTypeByCountry() {
+    if (dominantDisasterTypeByCountry) return dominantDisasterTypeByCountry;
+
+    const typeCountsByCountry = {};
+
+    DATA.filter(isNaturalDisaster).forEach(disaster => {
+        if (!disaster.ISO || !disaster.Disaster_Type) return;
+
+        const disasterType = String(disaster.Disaster_Type).trim();
+        if (!disasterType) return;
+
+        if (!typeCountsByCountry[disaster.ISO]) {
+            typeCountsByCountry[disaster.ISO] = {};
+        }
+
+        typeCountsByCountry[disaster.ISO][disasterType] = (typeCountsByCountry[disaster.ISO][disasterType] || 0) + 1;
+    });
+
+    dominantDisasterTypeByCountry = {};
+
+    Object.entries(typeCountsByCountry).forEach(([iso, counts]) => {
+        const dominantType = Object.entries(counts)
+            .sort((a, b) => {
+                const countDifference = b[1] - a[1];
+                if (countDifference !== 0) return countDifference;
+
+                return getDisasterTypeOrder(a[0]) - getDisasterTypeOrder(b[0]);
+            })[0][0];
+
+        dominantDisasterTypeByCountry[iso] = dominantType;
+    });
+
+    return dominantDisasterTypeByCountry;
+}
+
+function getDisasterTypeOrder(disasterType) {
+    const index = disasterTypeOrder.indexOf(disasterType);
+    return index === -1 ? disasterTypeOrder.length : index;
+}
+
 function createCountryValueExpression(values) {
     const entries = Object.entries(values);
 
@@ -433,6 +518,25 @@ function createHeatmapExpression(featureData) {
     });
 
     return choropleth;
+}
+
+function createCategoricalExpression(featureData) {
+    const entries = Object.entries(featureData.values);
+
+    if (entries.length === 0) return featureData.colorsByValue.default || '#ffffff';
+
+    const expression = [
+        'match',
+        ['get', 'iso_3166_1_alpha_3']
+    ];
+
+    for (const [iso, value] of entries) {
+        expression.push(iso, featureData.colorsByValue[value] || '#9e9e9e');
+    }
+
+    expression.push('#ffffff');
+
+    return expression;
 }
 
 function createHeatmapStops(featureData) {
@@ -505,6 +609,11 @@ function updateLegend(featureData) {
         return;
     }
 
+    if (featureData.legendType === 'categorical') {
+        updateCategoricalLegend(featureData, legend, legendTitle, legendItems);
+        return;
+    }
+
     const stops = createHeatmapStops(featureData);
     const values = Object.values(featureData.values);
     const max = Math.max(...values, 0);
@@ -540,6 +649,32 @@ function updateLegend(featureData) {
     legend.classList.remove('hidden');
 }
 
+function updateCategoricalLegend(featureData, legend, legendTitle, legendItems) {
+    const presentTypes = [...new Set(Object.values(featureData.values))]
+        .sort((a, b) => getDisasterTypeOrder(a) - getDisasterTypeOrder(b));
+
+    legendTitle.innerText = featureData.legendTitle || 'Categories';
+
+    const legendRows = presentTypes.length
+        ? presentTypes.map(disasterType => ({
+            color: featureData.colorsByValue[disasterType] || '#9e9e9e',
+            label: disasterType
+        }))
+        : [{
+            color: '#ffffff',
+            label: featureData.legendNoDataLabel || 'No data'
+        }];
+
+    legendItems.innerHTML = legendRows.map(row => `
+        <div class="legend-item">
+            <span class="legend-swatch" style="background:${row.color}"></span>
+            <span>${row.label}</span>
+        </div>
+    `).join('');
+
+    legend.classList.remove('hidden');
+}
+
 //choropleth map for global disaster view
 function updateMap() {
     if (!map.getLayer('countries')) return;
@@ -561,7 +696,9 @@ function updateMap() {
         return;
     }
 
-    const choropleth = createHeatmapExpression(featureData);
+    const choropleth = featureData.legendType === 'categorical'
+        ? createCategoricalExpression(featureData)
+        : createHeatmapExpression(featureData);
     updateLegend(featureData);
 
     map.setPaintProperty('countries', 'fill-color', [
