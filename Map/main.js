@@ -6,6 +6,8 @@ let hoveredId = null;
 let countryCounts = null;
 let averageDeathsByCountry = null;
 let averageDamageByCountry = null;
+let averageAffectedByCountry = null;
+let averageAidByCountry = null;
 let dominantDisasterTypeByCountry = null;
 let selectedId = null;
 let selectedFeature = null;
@@ -79,6 +81,22 @@ const featureComputers = {
         legendNoDataLabel: 'No data',
         legendType: 'categorical'
     }),
+    'average-affected': () => ({
+        values: getAverageAffectedByCountry(),
+        colors: ['#ffffff', '#f2f0f7', '#cbc9e2', '#9e9ac8', '#756bb1', '#54278f'],
+        scale: 'log',
+        legendTitle: 'Avg affected / disaster (log scale)',
+        legendNoDataLabel: 'No registered affected data',
+        legendFormatter: formatLegendNumber
+    }),
+    'average-aid': () => ({
+        values: getAverageAidByCountry(),
+        colors: ['#ffffff', '#e0f7fa', '#b2ebf2', '#80deea', '#26c6da', '#00838f'],
+        scale: 'log',
+        legendTitle: 'Avg aid / disaster (log scale)',
+        legendNoDataLabel: 'No registered aid data',
+        legendFormatter: formatLegendNumber
+    }),
 };
 
 const map = new mapboxgl.Map({
@@ -123,7 +141,7 @@ map.on('load', async () => {
         }
     });
 
-   // hovering 
+    // hovering 
     map.on('mousemove', 'countries', (e) => {
 
         if (!countryActive) return;
@@ -179,18 +197,18 @@ map.on('load', async () => {
         if (!countryActive) return;
 
         //color only clicked country
-        if (selectedId !== null) { 
+        if (selectedId !== null) {
+            map.setFeatureState(
+                { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
+                { selected: false }
+            );
+        }
+
+        selectedId = e.features[0].id;
         map.setFeatureState(
             { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
-            { selected: false }
+            { selected: true }
         );
-    }
-
-    selectedId = e.features[0].id;
-    map.setFeatureState(
-        { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
-        { selected: true }
-    );
 
         clearHover();
         openPanel(e.features[0].properties, e.features[0].geometry);
@@ -237,9 +255,9 @@ function openPanel(country, geometry) {
     const panel = document.getElementById('panel');
 
     const margin = 20;
-    panel.style.left  = '';
+    panel.style.left = '';
     panel.style.right = margin + 'px';
-    panel.style.top   = margin + 'px';
+    panel.style.top = margin + 'px';
 
     panel.classList.remove('hidden');
 
@@ -305,11 +323,11 @@ function makeDraggable(el) {
 
     //limit the drag to window boundaries 
     function onDrag(e) {
-    const newLeft = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, startLeft + e.clientX - startX));
-    const newTop = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, startTop + e.clientY - startY));
-    el.style.left = newLeft + 'px';
-    el.style.top = newTop + 'px';
-}
+        const newLeft = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, startLeft + e.clientX - startX));
+        const newTop = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, startTop + e.clientY - startY));
+        el.style.left = newLeft + 'px';
+        el.style.top = newTop + 'px';
+    }
 
     function stopDrag() {
         document.removeEventListener('mousemove', onDrag);
@@ -447,6 +465,27 @@ function getAverageDamageByCountry() {
     ]);
 
     return averageDamageByCountry;
+}
+
+function getAverageAffectedByCountry() {
+    if (averageAffectedByCountry) return averageAffectedByCountry;
+
+    averageAffectedByCountry = getAverageMetricByCountry(['Total_Affected'], 0);
+
+    return averageAffectedByCountry;
+}
+
+
+function getAverageAidByCountry() {
+    if (averageAidByCountry) return averageAidByCountry;
+
+    averageAidByCountry = getAverageMetricByCountry([
+        "AID_Contribution_('000_US$)",
+        "AID_Contribution_000_US$",
+        "Aid_Contribution"
+    ], 0);
+
+    return averageAidByCountry;
 }
 
 function getDominantDisasterTypeByCountry() {
@@ -684,7 +723,7 @@ function updateMap() {
     if (!globeActive || !featureData) {
         updateLegend(null);
         clearHover();
-    
+
         map.setPaintProperty('countries', 'fill-color', [
             'case',
             ['boolean', ['feature-state', 'hover'], false],
@@ -692,7 +731,7 @@ function updateMap() {
             ['boolean', ['feature-state', 'selected'], false], '#e3bb80',
             '#ffffff'
         ]);
-    
+
         return;
     }
 
