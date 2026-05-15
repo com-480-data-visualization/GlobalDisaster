@@ -8,7 +8,7 @@
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
 
-    <!--Excel reader  -->
+    <!-- Excel reader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <link rel="stylesheet" href="style.css">
@@ -19,31 +19,44 @@
 
     <aside id="feature-panel" class="feature-panel">
         <h2>Feature to visualize</h2>
+
+        <p class="feature-panel-hint">
+            First selected feature controls country color.<br>
+            Second selected feature controls country shape distortion.
+        </p>
+
         <div class="feature-options" aria-label="Feature to visualize">
+
             <label class="feature-option">
                 <input type="checkbox" name="feature" value="disaster-number" checked>
                 <span>Number of natural disasters</span>
             </label>
+
             <label class="feature-option">
                 <input type="checkbox" name="feature" value="average-deaths">
                 <span>Average deaths per disaster</span>
             </label>
+
             <label class="feature-option">
                 <input type="checkbox" name="feature" value="average-damage">
                 <span>Average economic losses per disaster</span>
             </label>
+
             <label class="feature-option">
                 <input type="checkbox" name="feature" value="average-affected">
                 <span>Average people affected per disaster</span>
             </label>
+
             <label class="feature-option">
                 <input type="checkbox" name="feature" value="average-aid">
                 <span>Average amount of aid per disaster</span>
             </label>
+
             <label class="feature-option">
                 <input type="checkbox" name="feature" value="dominant-disaster-type">
                 <span>Most represented disaster type</span>
             </label>
+
         </div>
     </aside>
 
@@ -54,22 +67,28 @@
 
     <aside id="heatmap-legend" class="heatmap-legend hidden" aria-label="Heatmap legend">
         <h2>Natural disasters</h2>
+
+        <!-- Distortion explanation -->
+        <div id="legend-distort-note"></div>
+
         <div id="heatmap-legend-items"></div>
     </aside>
 
     <div id="panel" class="panel hidden">
-    <div class="panel-header">
-        <img id="country-flag" src="" alt="flag">
-        <h2 id="country-name">Country</h2>
-        <button class="close-btn" onclick="closePanel()">✕</button>
+        <div class="panel-header">
+            <img id="country-flag" src="" alt="flag">
+            <h2 id="country-name">Country</h2>
+            <button class="close-btn" onclick="closePanel()">✕</button>
+        </div>
+
+        <div class="panel-body">
+            <div id="worst-by-country-container"></div>
+        </div>
     </div>
-    <div class="panel-body">
-        <div id="worst-by-country-container"></div>
-    </div>
-</div>
 
     <script src="config.js"></script>
-    <script src="data.js"></script> 
+    <script src="data.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
