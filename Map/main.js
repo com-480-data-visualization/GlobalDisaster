@@ -14,6 +14,13 @@ let dominantDisasterTypeByCountry = null;
 let selectedId = null;
 let selectedFeature = null;
 
+let minTimelineYear = null;
+let maxTimelineYear = null;
+
+let timeLowerBound = null;
+let timeUpperBound = null;
+
+
 // --- Dual-selection state ---
 // colorFeature: the feature driving choropleth color
 // distortFeature: the feature driving cartogram distortion (null if none)
@@ -119,6 +126,91 @@ const featureComputers = {
     }),
 };
 
+
+
+function getDatasetMinYear() {
+    const years = DATA
+        .map(d => Number(d.start_year || d.Start_Year))
+        .filter(y => Number.isFinite(y));
+
+    return Math.min(...years);
+}
+
+function getDatasetMaxYear() {
+    const years = DATA
+        .map(d => Number(d.end_year || d.End_Year))
+        .filter(y => Number.isFinite(y));
+
+    return Math.max(...years);
+}
+
+function setupTimeline() {
+
+    minTimelineYear = getDatasetMinYear();
+    maxTimelineYear = getDatasetMaxYear();
+
+    timeLowerBound = minTimelineYear;
+    timeUpperBound = maxTimelineYear;
+
+    const lower = document.getElementById('timeline-lower');
+    const upper = document.getElementById('timeline-upper');
+
+    lower.min = minTimelineYear;
+    lower.max = maxTimelineYear;
+    lower.value = minTimelineYear;
+
+    upper.min = minTimelineYear;
+    upper.max = maxTimelineYear;
+    upper.value = maxTimelineYear;
+
+    document.getElementById('timeline-min-label').innerText = minTimelineYear;
+    document.getElementById('timeline-max-label').innerText = maxTimelineYear;
+
+    function refreshTimelineLabel() {
+        document.getElementById('timeline-range-label').innerText =
+            `${timeLowerBound} - ${timeUpperBound}`;
+    }
+
+    lower.addEventListener('input', () => {
+
+        const value = Number(lower.value);
+
+        timeLowerBound = Math.min(value, timeUpperBound);
+
+        lower.value = timeLowerBound;
+
+        refreshTimelineLabel();
+
+        invalidateFeatureCaches();
+
+        updateMap();
+    });
+
+    upper.addEventListener('input', () => {
+
+        const value = Number(upper.value);
+
+        timeUpperBound = Math.max(value, timeLowerBound);
+
+        upper.value = timeUpperBound;
+
+        refreshTimelineLabel();
+
+        invalidateFeatureCaches();
+
+        updateMap();
+    });
+
+    refreshTimelineLabel();
+}
+
+
+
+
+
+
+
+
 const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/light-v11',
@@ -126,10 +218,12 @@ const map = new mapboxgl.Map({
     zoom: 2.5
 });
 
+
 map.on('load', async () => {
     setupFeaturePanel();
     refreshFeatureTags();
     await loadData();
+    setupTimeline();
     await fetchWorldGeoJSON();
 
     // Base Mapbox vector tile layer (always present, used for interaction)
@@ -925,6 +1019,42 @@ function clearHover() {
 }
 
 // ─── Data helpers (unchanged) ──────────────────────────────────────────────
+function invalidateFeatureCaches() {
+    countryCounts = null;
+    averageDeathsByCountry = null;
+    averageDamageByCountry = null;
+    averageAffectedByCountry = null;
+    averageAidByCountry = null;
+    dominantDisasterTypeByCountry = null;
+}
+
+
+function getFilteredData() {
+
+    return DATA.filter(disaster => {
+
+        const start =
+            Number(disaster.start_year || disaster.Start_Year);
+
+        const end =
+            Number(disaster.end_year || disaster.End_Year);
+
+        if (!Number.isFinite(start) || !Number.isFinite(end)) {
+            return false;
+        }
+
+        return (
+            end >= timeLowerBound &&
+            start <= timeUpperBound
+        );
+    });
+}
+
+
+
+
+
+
 
 function isNaturalDisaster(disaster) {
     if (!disaster.Disaster_Group) return true;
@@ -950,7 +1080,7 @@ function roundMetricValue(value, decimals) {
 function getAverageMetricByCountry(columns, decimals = 0) {
     const totals = {};
     const counts = {};
-    DATA.filter(isNaturalDisaster).forEach(disaster => {
+    getFilteredData().filter(isNaturalDisaster).forEach(disaster => {
         if (!disaster.ISO) return;
         const value = getNumericValue(disaster, columns);
         if (value === null) return;
@@ -967,12 +1097,12 @@ function getAverageMetricByCountry(columns, decimals = 0) {
 function getCountryDisasterCounts() {
     if (countryCounts) return countryCounts;
     countryCounts = {};
-    DATA.filter(isNaturalDisaster).forEach(d => {
+    getFilteredData().filter(isNaturalDisaster).forEach(d => {
         if (!d.ISO) return;
         countryCounts[d.ISO] = (countryCounts[d.ISO] || 0) + 1;
     });
     if (Object.keys(countryCounts).length === 0) {
-        DATA.forEach(d => {
+        getFilteredData().forEach(d => {
             if (!d.ISO) return;
             countryCounts[d.ISO] = (countryCounts[d.ISO] || 0) + 1;
         });
@@ -1011,7 +1141,7 @@ function getAverageAidByCountry() {
 function getDominantDisasterTypeByCountry() {
     if (dominantDisasterTypeByCountry) return dominantDisasterTypeByCountry;
     const typeCountsByCountry = {};
-    DATA.filter(isNaturalDisaster).forEach(disaster => {
+    getFilteredData().filter(isNaturalDisaster).forEach(disaster => {
         if (!disaster.ISO || !disaster.Disaster_Type) return;
         const disasterType = String(disaster.Disaster_Type).trim();
         if (!disasterType) return;

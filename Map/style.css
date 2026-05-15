@@ -394,3 +394,92 @@ body {
 
     color: #c0392b;
 }
+
+
+/* =========================
+   TIMELINE
+========================= */
+
+#timeline-container {
+    position: absolute;
+
+    left: 50%;
+    transform: translateX(-50%);
+
+    bottom: 18px;
+
+    width: min(900px, 70vw);
+
+    z-index: 5;
+
+    padding: 14px 18px;
+
+    border-radius: 14px;
+
+    background: rgba(255,255,255,0.96);
+
+    border: 1px solid #d8d8d8;
+
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+
+    font-family: Helvetica, Arial, sans-serif;
+}
+
+.timeline-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 10px;
+
+    font-size: 12px;
+    color: #444;
+}
+
+#timeline-range-label {
+    font-weight: 700;
+    color: #1f3b73;
+}
+
+.timeline-sliders {
+    position: relative;
+    height: 30px;
+}
+
+.timeline-sliders input[type="range"] {
+    position: absolute;
+
+    width: 100%;
+    left: 0;
+    top: 0;
+
+    pointer-events: none;
+
+    appearance: none;
+    background: none;
+}
+
+.timeline-sliders input[type="range"]::-webkit-slider-thumb {
+    pointer-events: auto;
+
+    appearance: none;
+
+    width: 18px;
+    height: 18px;
+
+    border-radius: 50%;
+
+    background: #1f3b73;
+
+    cursor: pointer;
+
+    border: 2px solid white;
+
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.timeline-sliders input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    background: #d0d0d0;
+    border-radius: 999px;
+}
