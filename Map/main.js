@@ -523,13 +523,14 @@ function setupFeaturePanel() {
                         colorFeature = distortFeature;
                         distortFeature = null;
                         // Update the UI tags
-                        refreshFeatureTags();
+                        
                     } else {
                         colorFeature = null;
                     }
                 } else if (distortFeature === value) {
                     distortFeature = null;
                 }
+                refreshFeatureTags();
                 updateMap();
                 return;
             }
@@ -691,10 +692,12 @@ function buildCartogramGeoJSON(distortData, colorData) {
 
     const maxVal = Math.max(...numericValues);
     const minVal = Math.min(...numericValues);
+    const logMin = Math.log10(minVal);
+    const logMax = Math.log10(maxVal);
 
     // Scale factor range: 0.15 (no data / zero) to 2.2 (max)
-    const MIN_SCALE = 0.55;
-    const MAX_SCALE = 1.35;
+    const MIN_SCALE = 0.15;
+    const MAX_SCALE = 1;
 
     // For color lookup (may be categorical or numeric)
     const colorExpression = colorData
@@ -706,11 +709,12 @@ function buildCartogramGeoJSON(distortData, colorData) {
     for (const feature of worldGeoJSON.features) {
         const props = feature.properties;
 
-        const iso3 =
-            props.ISO_A3 ||
-            props.ADM0_A3 ||
-            props.iso_a3 ||
-            '';
+        const iso3 = [
+            props.ISO_A3,
+            props.ADM0_A3,
+            props.ISO_A3_EH,
+            props.iso_a3,
+        ].find(v => v && v !== '-99' && v.length === 3) || '';
 
         if (iso3 === 'ATA') continue;
         const value = distortValues[iso3];
@@ -718,7 +722,10 @@ function buildCartogramGeoJSON(distortData, colorData) {
         let scaleFactor = MIN_SCALE;
         
         if (value > 0) {
-            const t = Math.sqrt(value / maxVal);
+            const logVal = Math.log10(value);
+            const t = logMax === logMin
+                ? 1
+                : (logVal - logMin) / (logMax - logMin);
             scaleFactor = MIN_SCALE + t * (MAX_SCALE - MIN_SCALE);
         }
 
@@ -727,7 +734,8 @@ function buildCartogramGeoJSON(distortData, colorData) {
             feature,
             scaleFactor,
             {
-                mutate: false
+                mutate: false,
+                origin: [centroid[0], centroid[1]] 
             }
         );
 

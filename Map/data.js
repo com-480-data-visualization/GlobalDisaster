@@ -12,7 +12,6 @@ async function loadData() {
 
     DATA = raw.map(cleanColumns);
     computeWorstByCountry();
-
     console.log("DATA LOADED:", DATA.length);
     console.log(DATA[0]); 
 
@@ -39,5 +38,11 @@ function cleanColumns(row) {
             .replace(/\//g, "_");
         r[nk] = row[k];
     }
+
+    // Normalise historical ISO codes to modern equivalents
+    if (r.ISO) {
+        r.ISO = resolveISO(String(r.ISO).trim().toUpperCase());
+    }
+    
     return r;
 }
