@@ -499,6 +499,17 @@ map.on('mouseleave', 'cartogram-fill', () => {
 // FINAL INIT
 // ─────────────────────────────────────────────────────────────
 
+BubbleOverlay.init(map);
+
+window.onBubbleClick = function (iso3, props) {
+    const fakeFeature = {
+        id: iso3,
+        properties: Object.assign({}, props, { _iso3: iso3 }),
+        geometry: null
+    };
+    openPanelFromCartogram(fakeFeature);
+};
+
 makeDraggable(document.getElementById('panel'));
 
 updateMap();
@@ -792,66 +803,59 @@ function precomputeCountryColors(featureData) {
 
 function updateMap() {
     if (!map.getLayer('countries')) return;
-
+ 
     const featureData = getSelectedFeatureData();
-    const distortData = getDistortFeatureData();
-
+    const distortData  = getDistortFeatureData();
+ 
+    // Always keep the Mapbox globe visible
+    map.setLayoutProperty('countries',        'visibility', 'visible');
+    map.setLayoutProperty('countries-border', 'visibility', 'visible');
+ 
+    // Keep old cartogram source empty
     const cartogramSource = map.getSource('cartogram-source');
-    const showCartogram = globeActive && distortData && cartogramSource;
-
+    if (cartogramSource) {
+        cartogramSource.setData({ type: 'FeatureCollection', features: [] });
+    }
+    map.setLayoutProperty('cartogram-fill',   'visibility', 'none');
+    map.setLayoutProperty('cartogram-border', 'visibility', 'none');
+ 
     if (!globeActive || !featureData) {
+        BubbleOverlay.hide();
         updateLegend(null);
         clearHover();
-
-        // Hide cartogram
-        if (cartogramSource) {
-            cartogramSource.setData({ type: 'FeatureCollection', features: [] });
-        }
-        map.setLayoutProperty('cartogram-fill', 'visibility', 'none');
-        map.setLayoutProperty('cartogram-border', 'visibility', 'none');
-        map.setLayoutProperty('countries', 'visibility', 'visible');
-        map.setLayoutProperty('countries-border', 'visibility', 'visible');
-
         map.setPaintProperty('countries', 'fill-color', [
             'case',
-            ['boolean', ['feature-state', 'hover'], false], '#aaaaaa',
+            ['boolean', ['feature-state', 'hover'],    false], '#aaaaaa',
             ['boolean', ['feature-state', 'selected'], false], '#e3bb80',
             '#ffffff'
         ]);
         return;
     }
-
-    if (showCartogram) {
-        // Build and show cartogram layer; hide the vector tile fill
-        const cartogramData = buildCartogramGeoJSON(distortData, featureData);
-        cartogramSource.setData(cartogramData);
-        map.setLayoutProperty('cartogram-fill', 'visibility', 'visible');
-        map.setLayoutProperty('cartogram-border', 'visibility', 'visible');
-        // Keep base vector layer hidden so cartogram polygons show cleanly
-        map.setLayoutProperty('countries', 'visibility', 'none');
-        map.setLayoutProperty('countries-border', 'visibility', 'none');
+ 
+    if (distortData && worldGeoJSON) {
+        // Bubbles active — countries go neutral, bubbles carry the color
+        map.setPaintProperty('countries', 'fill-color', [
+            'case',
+            ['boolean', ['feature-state', 'hover'],    false], '#aaaaaa',
+            ['boolean', ['feature-state', 'selected'], false], '#e3bb80',
+            '#e8e8e8'
+        ]);
+        const colorMap = precomputeCountryColors(featureData);
+        BubbleOverlay.show(worldGeoJSON, distortData.values, colorMap);
     } else {
-        // Normal choropleth
-        if (cartogramSource) {
-            cartogramSource.setData({ type: 'FeatureCollection', features: [] });
-        }
-        map.setLayoutProperty('cartogram-fill', 'visibility', 'none');
-        map.setLayoutProperty('cartogram-border', 'visibility', 'none');
-        map.setLayoutProperty('countries', 'visibility', 'visible');
-        map.setLayoutProperty('countries-border', 'visibility', 'visible');
-
+        // No bubbles — choropleth on countries
         const choropleth = featureData.legendType === 'categorical'
             ? createCategoricalExpression(featureData)
             : createHeatmapExpression(featureData);
-
         map.setPaintProperty('countries', 'fill-color', [
             'case',
-            ['boolean', ['feature-state', 'hover'], false], '#aaaaaa',
+            ['boolean', ['feature-state', 'hover'],    false], '#aaaaaa',
             ['boolean', ['feature-state', 'selected'], false], '#e3bb80',
             choropleth
         ]);
+        BubbleOverlay.hide();
     }
-
+ 
     updateLegend(featureData, distortData);
 }
 
@@ -1003,6 +1007,7 @@ function toggleGlobe() {
     globeActive = !globeActive;
     clearHover();
     document.getElementById('btn-globe').classList.toggle('active', globeActive);
+    if (!globeActive) BubbleOverlay.hide();
     updateMap();
 }
 
