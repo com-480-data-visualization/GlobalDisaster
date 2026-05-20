@@ -13,6 +13,7 @@ let averageAidByCountry = null;
 let dominantDisasterTypeByCountry = null;
 let selectedId = null;
 let selectedFeature = null;
+let _hoveredMapContinent = null; 
 
 let minTimelineYear = null;
 let maxTimelineYear = null;
@@ -224,7 +225,7 @@ map.on('load', async () => {
     refreshFeatureTags();
     await loadData();
     setupTimeline();
-    await fetchWorldGeoJSON();
+    //await fetchWorldGeoJSON();
 
     // Base Mapbox vector tile layer (always present, used for interaction)
     map.addSource('country-source', {
@@ -298,99 +299,71 @@ map.on('load', async () => {
 // ─────────────────────────────────────────────────────────────
 
 map.on('mousemove', 'countries', (e) => {
-
+    // Continent hover in bubble mode
+    if (globeActive && distortFeature) {
+        const iso3 = e.features[0].properties.iso_3166_1_alpha_3;
+        const continent = ContinentPanel.CONTINENT_BY_ISO3[iso3];
+        if (continent && continent !== _hoveredMapContinent) {
+            if (_hoveredMapContinent) ContinentPanel.setHover(_hoveredMapContinent, false);
+            _hoveredMapContinent = continent;
+            ContinentPanel.setHover(_hoveredMapContinent, true);
+        }
+        map.getCanvas().style.cursor = 'pointer';
+        return;
+    }
     if (!countryActive) return;
-
     map.getCanvas().style.cursor = 'pointer';
-
     const newId = e.features[0].id;
-
     if (hoveredId !== null && hoveredId !== newId) {
-
         map.setFeatureState(
-            {
-                source: 'country-source',
-                sourceLayer: 'country_boundaries',
-                id: hoveredId
-            },
-            {
-                hover: false
-            }
+            { source: 'country-source', sourceLayer: 'country_boundaries', id: hoveredId },
+            { hover: false }
         );
     }
-
     hoveredId = newId;
-
     map.setFeatureState(
-        {
-            source: 'country-source',
-            sourceLayer: 'country_boundaries',
-            id: hoveredId
-        },
-        {
-            hover: true
-        }
+        { source: 'country-source', sourceLayer: 'country_boundaries', id: hoveredId },
+        { hover: true }
     );
 });
 
 map.on('mouseleave', 'countries', () => {
-
+    if (_hoveredMapContinent) {
+        ContinentPanel.setHover(_hoveredMapContinent, false);
+        _hoveredMapContinent = null;
+    }
     map.getCanvas().style.cursor = '';
-
     if (hoveredId !== null) {
-
         map.setFeatureState(
-            {
-                source: 'country-source',
-                sourceLayer: 'country_boundaries',
-                id: hoveredId
-            },
-            {
-                hover: false
-            }
+            { source: 'country-source', sourceLayer: 'country_boundaries', id: hoveredId },
+            { hover: false }
         );
     }
-
     hoveredId = null;
 });
 
 map.on('click', 'countries', (e) => {
-
+    // Continent click in bubble mode
+    if (globeActive && distortFeature) {
+        const iso3 = e.features[0].properties.iso_3166_1_alpha_3;
+        const continent = ContinentPanel.CONTINENT_BY_ISO3[iso3];
+        if (continent) ContinentPanel.open(continent);
+        return;
+    }
     if (!countryActive) return;
-
     if (selectedId !== null) {
-
         map.setFeatureState(
-            {
-                source: 'country-source',
-                sourceLayer: 'country_boundaries',
-                id: selectedId
-            },
-            {
-                selected: false
-            }
+            { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
+            { selected: false }
         );
     }
-
     selectedId = e.features[0].id;
-
     map.setFeatureState(
-        {
-            source: 'country-source',
-            sourceLayer: 'country_boundaries',
-            id: selectedId
-        },
-        {
-            selected: true
-        }
+        { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
+        { selected: true }
     );
-
     clearHover();
-
-    openPanel(
-        e.features[0].properties,
-        e.features[0].geometry
-    );
+    openPanel(e.features[0].properties, e.features[0].geometry);
 });
 
 
@@ -500,19 +473,12 @@ map.on('mouseleave', 'cartogram-fill', () => {
 // ─────────────────────────────────────────────────────────────
 
 BubbleOverlay.init(map);
-
-window.onBubbleClick = function (iso3, props) {
-    const fakeFeature = {
-        id: iso3,
-        properties: Object.assign({}, props, { _iso3: iso3 }),
-        geometry: null
-    };
-    openPanelFromCartogram(fakeFeature);
-};
+ContinentPanel.init(map);
 
 makeDraggable(document.getElementById('panel'));
 
 updateMap();
+await fetchWorldGeoJSON();
 
 });
 
@@ -636,7 +602,8 @@ async function fetchWorldGeoJSON() {
     const url = './countries.geojson';
     try {
         const res = await fetch(url);
-        worldGeoJSON = await res.json();
+        worldGeoJSON = window.worldGeoJSON = await res.json();
+        ContinentPanel.buildLayers();
     } catch (err) {
         console.warn('Could not fetch world GeoJSON for cartogram:', err);
         worldGeoJSON = null;
@@ -841,7 +808,7 @@ function updateMap() {
             '#e8e8e8'
         ]);
         const colorMap = precomputeCountryColors(featureData);
-        BubbleOverlay.show(worldGeoJSON, distortData.values, colorMap);
+        BubbleOverlay.show(worldGeoJSON, distortData.values, colorMap, ContinentPanel.CONTINENT_BY_ISO3);
     } else {
         // No bubbles — choropleth on countries
         const choropleth = featureData.legendType === 'categorical'
@@ -857,6 +824,8 @@ function updateMap() {
     }
  
     updateLegend(featureData, distortData);
+    ContinentPanel.setVisible(true);
+    if (ContinentPanel.isOpen()) ContinentPanel.refresh();
 }
 
 // ─── Panel & interaction helpers (unchanged from original) ─────────────────

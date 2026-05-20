@@ -1,12 +1,16 @@
 // bubbles.js — Proportional circle overlay on the Mapbox globe
-// Called from main.js when distortFeature is active and globeActive is true.
 
 (function () {
 
-    const LAYER_ID = 'bubble-layer';
-    const SOURCE_ID = 'bubble-source';
+    const LAYER_ID        = 'bubble-layer';
+    const LAYER_ID_HOVER  = 'bubble-layer-hover';   // highlight ring on hover
+    const SOURCE_ID       = 'bubble-source';
 
     let _map = null;
+    let _hoveredContinent = null;
+
+    // continent → ISO3[] built when show() is called
+    let _continentIndex = {};
 
     window.BubbleOverlay = {
 
@@ -18,35 +22,67 @@
                 data: emptyFC()
             });
 
+            // Base fill layer
             _map.addLayer({
                 id: LAYER_ID,
                 type: 'circle',
                 source: SOURCE_ID,
                 paint: {
-                    'circle-radius':          ['get', '_radius'],
-                    'circle-color':           ['get', '_color'],
-                    'circle-opacity':         0.75,
-                    'circle-stroke-width':    1.8,
-                    'circle-stroke-color':    ['get', '_strokeColor'],
-                    'circle-stroke-opacity':  0.9
+                    'circle-radius':         ['get', '_radius'],
+                    'circle-color':          ['get', '_color'],
+                    'circle-opacity':        ['case',
+                        ['boolean', ['feature-state', 'continentHover'], false], 0.95,
+                        0.75
+                    ],
+                    'circle-stroke-width':   ['case',
+                        ['boolean', ['feature-state', 'continentHover'], false], 2.5,
+                        1.5
+                    ],
+                    'circle-stroke-color':   ['get', '_strokeColor'],
+                    'circle-stroke-opacity': 0.9
                 }
             });
 
-            _map.on('click', LAYER_ID, (e) => {
-                if (!window.countryActive) return;
-                const props = e.features[0].properties;
-                if (window.onBubbleClick) window.onBubbleClick(props._iso3, props);
-            });
-
-            _map.on('mouseenter', LAYER_ID, () => {
+            _map.on('mouseenter', LAYER_ID, (e) => {
                 _map.getCanvas().style.cursor = 'pointer';
+                const continent = e.features[0].properties._continent;
+                if (continent && continent !== _hoveredContinent) {
+                    if (_hoveredContinent && window.ContinentPanel) 
+                        ContinentPanel.setHover(_hoveredContinent, false);
+                    _hoveredContinent = continent;
+                    if (window.ContinentPanel) 
+                        ContinentPanel.setHover(_hoveredContinent, true);
+                }
             });
+            
+            _map.on('mousemove', LAYER_ID, (e) => {
+                const continent = e.features[0].properties._continent;
+                if (continent && continent !== _hoveredContinent) {
+                    if (_hoveredContinent && window.ContinentPanel) 
+                        ContinentPanel.setHover(_hoveredContinent, false);
+                    _hoveredContinent = continent;
+                    if (window.ContinentPanel) 
+                        ContinentPanel.setHover(_hoveredContinent, true);
+                }
+            });
+            
             _map.on('mouseleave', LAYER_ID, () => {
                 _map.getCanvas().style.cursor = '';
+                if (_hoveredContinent && window.ContinentPanel) 
+                    ContinentPanel.setHover(_hoveredContinent, false);
+                _hoveredContinent = null;
+            });
+            
+            _map.on('click', LAYER_ID, (e) => {
+                if (!window.globeActive) return;
+                const continent = e.features[0].properties._continent;
+                if (continent && window.ContinentPanel) {
+                    ContinentPanel.open(continent);
+                }
             });
         },
 
-        show: function (geoJSON, distortValues, colorMap) {
+        show: function (geoJSON, distortValues, colorMap, continentByISO) {
             if (!_map || !geoJSON) return;
 
             const positiveVals = Object.values(distortValues).filter(v => v > 0);
@@ -58,7 +94,8 @@
             const MIN_R = 4;
             const MAX_R = 36;
 
-            const features = [];
+            _continentIndex = {};
+            const features  = [];
 
             for (const feature of geoJSON.features) {
                 const p = feature.properties;
@@ -78,24 +115,31 @@
                     ? 1
                     : (Math.log10(value) - logMin) / (logMax - logMin);
 
-                const radius = MIN_R + t * (MAX_R - MIN_R);
+                const radius      = MIN_R + t * (MAX_R - MIN_R);
+                const baseColor   = colorMap[iso3] || '#e8e8e8';
+                const fillColor   = baseColor;
+                const strokeColor = darkenColor(baseColor, 0.45);
+                const continent   = (continentByISO && continentByISO[iso3]) || '';
 
-                // Darken the choropleth color so bubbles read as a distinct layer
-                const baseColor  = colorMap[iso3] || '#9bd4d0';
-                const strokeColor = darkenColor(baseColor, 0.75); // even darker border
+                // Build continent index for hover
+                if (continent) {
+                    if (!_continentIndex[continent]) _continentIndex[continent] = [];
+                    _continentIndex[continent].push(iso3);
+                }
 
                 features.push({
                     type: 'Feature',
+                    id: iso3,          // needed for setFeatureState
                     geometry: { type: 'Point', coordinates: centroid },
                     properties: {
-                        _iso3: iso3,
-                        _iso2: (p.ISO_A2 || '').toLowerCase(),
-                        _name: p.ADMIN || p.NAME || iso3,
-                        _radius: radius,
-                        _color: baseColor,
+                        _iso3:        iso3,
+                        _iso2:        (p.ISO_A2 || '').toLowerCase(),
+                        _name:        p.ADMIN || p.NAME || iso3,
+                        _radius:      radius,
+                        _color:       fillColor,
                         _strokeColor: strokeColor,
-                        _value: value,
-                        ...p
+                        _value:       value,
+                        _continent:   continent,
                     }
                 });
             }
@@ -106,6 +150,7 @@
 
         hide: function () {
             if (!_map) return;
+            _clearContinentHover();
             const src = _map.getSource(SOURCE_ID);
             if (src) src.setData(emptyFC());
             if (_map.getLayer(LAYER_ID)) {
@@ -114,9 +159,27 @@
         }
     };
 
+    // ── Continent hover helpers ────────────────────────────────────────────
+
+    function _highlightContinent(continent, on) {
+        const isos = _continentIndex[continent] || [];
+        isos.forEach(iso3 => {
+            _map.setFeatureState(
+                { source: SOURCE_ID, id: iso3 },
+                { continentHover: on }
+            );
+        });
+    }
+
+    function _clearContinentHover() {
+        if (_hoveredContinent) {
+            _highlightContinent(_hoveredContinent, false);
+            _hoveredContinent = null;
+        }
+    }
+
     // ── Color helpers ──────────────────────────────────────────────────────
 
-    // Parse '#rrggbb' or '#rgb' → [r, g, b] 0-255
     function hexToRgb(hex) {
         hex = hex.replace('#', '');
         if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
@@ -134,7 +197,6 @@
         }).join('');
     }
 
-    // factor 0 = original, factor 1 = black
     function darkenColor(hex, factor) {
         if (!hex || !hex.startsWith('#')) return hex;
         const [r, g, b] = hexToRgb(hex);
