@@ -8,14 +8,22 @@
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
 
-    <!-- Excel reader -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+
     <div id="map"></div>
+
+    <div id="data-missing-overlay" class="data-missing-overlay hidden">
+        <div class="data-missing-card">
+            <h1>Missing data files</h1>
+            <p>The preprocessed JSON files are not available yet.</p>
+            <p>Run this command from the project root:</p>
+            <code>make prepare-data</code>
+        </div>
+    </div>
 
     <aside id="feature-panel" class="feature-panel">
         <h2>Feature to visualize</h2>
@@ -47,10 +55,6 @@
                 <span>Average people affected per disaster</span>
             </label>
 
-            <label class="feature-option">
-                <input type="checkbox" name="feature" value="average-aid">
-                <span>Average amount of aid per disaster</span>
-            </label>
 
             <label class="feature-option">
                 <input type="checkbox" name="feature" value="dominant-disaster-type">

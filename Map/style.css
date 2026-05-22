@@ -9,6 +9,71 @@ body {
 }
 
 /* =========================
+   DATA MISSING OVERLAY
+========================= */
+
+.data-missing-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(16, 24, 39, 0.72);
+    backdrop-filter: blur(3px);
+
+    font-family: Helvetica, Arial, sans-serif;
+}
+
+.data-missing-overlay.hidden {
+    display: none;
+}
+
+.data-missing-card {
+    width: min(460px, calc(100vw - 40px));
+    padding: 28px 30px;
+
+    border-radius: 18px;
+    background: white;
+    border: 1px solid #d8d8d8;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+
+    text-align: center;
+}
+
+.data-missing-card h1 {
+    margin: 0 0 12px;
+
+    font-size: 22px;
+    color: #1f3b73;
+}
+
+.data-missing-card p {
+    margin: 8px 0;
+
+    font-size: 14px;
+    line-height: 1.45;
+    color: #444;
+}
+
+.data-missing-card code {
+    display: inline-block;
+
+    margin-top: 12px;
+    padding: 10px 14px;
+
+    border-radius: 8px;
+    background: #f4f6f8;
+    border: 1px solid #d8d8d8;
+
+    font-size: 14px;
+    font-weight: 700;
+    color: #c0392b;
+}
+
+/* =========================
    FEATURE PANEL
 ========================= */
 

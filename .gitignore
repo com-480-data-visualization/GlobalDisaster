@@ -1,1 +1,4 @@
 Map/config.js
+.env
+.DS_Store
+Map/data

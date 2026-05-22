@@ -9,7 +9,6 @@ let countryCounts = null;
 let averageDeathsByCountry = null;
 let averageDamageByCountry = null;
 let averageAffectedByCountry = null;
-let averageAidByCountry = null;
 let dominantDisasterTypeByCountry = null;
 let selectedId = null;
 let selectedFeature = null;
@@ -72,8 +71,7 @@ const DISTORTABLE_FEATURES = new Set([
     'disaster-number',
     'average-deaths',
     'average-damage',
-    'average-affected',
-    'average-aid'
+    'average-affected'
 ]);
 
 const featureComputers = {
@@ -117,29 +115,23 @@ const featureComputers = {
         legendNoDataLabel: 'No registered affected data',
         legendFormatter: formatLegendNumber
     }),
-    'average-aid': () => ({
-        values: getAverageAidByCountry(),
-        colors: ['#ffffff', '#e0f7fa', '#b2ebf2', '#80deea', '#26c6da', '#00838f'],
-        scale: 'log',
-        legendTitle: 'Avg aid / disaster (log scale)',
-        legendNoDataLabel: 'No registered aid data',
-        legendFormatter: formatLegendNumber
-    }),
 };
 
 
 
 function getDatasetMinYear() {
-    const years = DATA
-        .map(d => Number(d.start_year || d.Start_Year))
+    const years = getAllDisasters()
+        .map(getDisasterStartYear)
+        .map(Number)
         .filter(y => Number.isFinite(y));
 
     return Math.min(...years);
 }
 
 function getDatasetMaxYear() {
-    const years = DATA
-        .map(d => Number(d.end_year || d.End_Year))
+    const years = getAllDisasters()
+        .map(getDisasterEndYear)
+        .map(Number)
         .filter(y => Number.isFinite(y));
 
     return Math.max(...years);
@@ -223,7 +215,13 @@ const map = new mapboxgl.Map({
 map.on('load', async () => {
     setupFeaturePanel();
     refreshFeatureTags();
-    await loadData();
+    try {
+        await loadData();
+    } catch (err) {
+        console.error(err);
+        showMissingDataOverlay();
+        return;
+    }
     setupTimeline();
     //await fetchWorldGeoJSON();
 
@@ -844,21 +842,20 @@ function openPanel(country, geometry) {
     document.getElementById('country-name').innerText = country.name_en;
     document.getElementById('country-flag').src = `https://flagcdn.com/w80/${iso2}.png`;
 
-    const hit = WORST_BY_COUNTRY.find(d => d.ISO === iso3);
+    const hit = getDeadliestDisasterForCountry(iso3);
     const container = document.getElementById('worst-by-country-container');
 
     if (hit) {
-        const name = hit.Event_Name || hit.Disaster_Type;
         container.innerHTML = `
             <div class="worst-by-country-section-title">Deadliest Disaster Recorded</div>
             <div class="worst-by-country-badge" style="animation-delay:0s">
                 <div class="badge-top-row">
-                    <div class="badge-name">${name}</div>
-                    <span class="badge-year">${hit.Start_Year}</span>
+                    <div class="badge-name">${getDisasterLabel(hit)}</div>
+                    <span class="badge-year">${getDisasterStartYear(hit)}</span>
                 </div>
-                <span class="badge-deaths">${hit.Total_Deaths.toLocaleString()} deaths</span>
+                <span class="badge-deaths">${getDisasterDeaths(hit).toLocaleString()} deaths</span>
                 <div class="badge-bottom-row">
-                    <span class="badge-type">${hit.Disaster_Subtype}</span>
+                    <span class="badge-type">${getDisasterSubtype(hit) || getDisasterType(hit) || 'Unknown type'}</span>
                 </div>
             </div>
         `;
@@ -890,48 +887,32 @@ function openPanelFromCartogram(feature) {
     document.getElementById('country-flag').src =
         `https://flagcdn.com/w80/${iso2}.png`;
 
-    const hit = WORST_BY_COUNTRY.find(d => d.ISO === iso3);
+    const hit = getDeadliestDisasterForCountry(iso3);
 
     const container = document.getElementById('worst-by-country-container');
 
     if (hit) {
-
-        const name = hit.Event_Name || hit.Disaster_Type;
-
         container.innerHTML = `
             <div class="worst-by-country-section-title">
                 Deadliest Disaster Recorded
             </div>
 
             <div class="worst-by-country-badge">
-
                 <div class="badge-top-row">
-
-                    <div class="badge-name">${name}</div>
-
-                    <span class="badge-year">
-                        ${hit.Start_Year}
-                    </span>
-
+                    <div class="badge-name">${getDisasterLabel(hit)}</div>
+                    <span class="badge-year">${getDisasterStartYear(hit)}</span>
                 </div>
-
                 <span class="badge-deaths">
-                    ${hit.Total_Deaths.toLocaleString()} deaths
+                    ${getDisasterDeaths(hit).toLocaleString()} deaths
                 </span>
-
                 <div class="badge-bottom-row">
-
                     <span class="badge-type">
-                        ${hit.Disaster_Subtype}
+                        ${getDisasterSubtype(hit) || getDisasterType(hit) || 'Unknown type'}
                     </span>
-
                 </div>
-
             </div>
         `;
-
     } else {
-
         container.innerHTML =
             '<div class="worst-by-country-section-title">No recorded data</div>';
     }
@@ -1006,30 +987,12 @@ function invalidateFeatureCaches() {
     averageDeathsByCountry = null;
     averageDamageByCountry = null;
     averageAffectedByCountry = null;
-    averageAidByCountry = null;
     dominantDisasterTypeByCountry = null;
 }
 
 
 function getFilteredData() {
-
-    return DATA.filter(disaster => {
-
-        const start =
-            Number(disaster.start_year || disaster.Start_Year);
-
-        const end =
-            Number(disaster.end_year || disaster.End_Year);
-
-        if (!Number.isFinite(start) || !Number.isFinite(end)) {
-            return false;
-        }
-
-        return (
-            end >= timeLowerBound &&
-            start <= timeUpperBound
-        );
-    });
+    return getDisastersInYearRange(timeLowerBound, timeUpperBound, getAllDisasters());
 }
 
 
@@ -1039,13 +1002,18 @@ function getFilteredData() {
 
 
 function isNaturalDisaster(disaster) {
-    if (!disaster.Disaster_Group) return true;
-    return String(disaster.Disaster_Group).trim().toLowerCase() === 'natural';
+    return true;
 }
 
 function getNumericValue(disaster, columns) {
     for (const column of columns) {
-        const value = disaster[column];
+        let value = null;
+
+        if (column === 'total_deaths') value = getDisasterDeaths(disaster);
+        else if (column === 'total_affected') value = getDisasterAffected(disaster);
+        else if (column === 'total_damage_usd_000') value = getDisasterDamage(disaster);
+        else value = disaster[column];
+
         if (value !== undefined && value !== null && value !== '') {
             const numberValue = Number(value);
             if (Number.isFinite(numberValue)) return numberValue;
@@ -1060,86 +1028,37 @@ function roundMetricValue(value, decimals) {
 }
 
 function getAverageMetricByCountry(columns, decimals = 0) {
-    const totals = {};
-    const counts = {};
-    getFilteredData().filter(isNaturalDisaster).forEach(disaster => {
-        if (!disaster.ISO) return;
-        const value = getNumericValue(disaster, columns);
-        if (value === null) return;
-        totals[disaster.ISO] = (totals[disaster.ISO] || 0) + value;
-        counts[disaster.ISO] = (counts[disaster.ISO] || 0) + 1;
-    });
-    const averages = {};
-    for (const [iso, total] of Object.entries(totals)) {
-        averages[iso] = roundMetricValue(total / counts[iso], decimals);
-    }
-    return averages;
+    const metricGetter = disaster => getNumericValue(disaster, columns);
+    return getAverageMetricByCountryFromJSON(metricGetter, decimals, getFilteredData());
 }
 
 function getCountryDisasterCounts() {
     if (countryCounts) return countryCounts;
-    countryCounts = {};
-    getFilteredData().filter(isNaturalDisaster).forEach(d => {
-        if (!d.ISO) return;
-        countryCounts[d.ISO] = (countryCounts[d.ISO] || 0) + 1;
-    });
-    if (Object.keys(countryCounts).length === 0) {
-        getFilteredData().forEach(d => {
-            if (!d.ISO) return;
-            countryCounts[d.ISO] = (countryCounts[d.ISO] || 0) + 1;
-        });
-    }
+    countryCounts = getCountryDisasterCountsFromJSON(getFilteredData());
     return countryCounts;
 }
 
 function getAverageDeathsByCountry() {
     if (averageDeathsByCountry) return averageDeathsByCountry;
-    averageDeathsByCountry = getAverageMetricByCountry(['Total_Deaths'], 1);
+    averageDeathsByCountry = getAverageDeathsByCountryFromJSON(getFilteredData());
     return averageDeathsByCountry;
 }
 
 function getAverageDamageByCountry() {
     if (averageDamageByCountry) return averageDamageByCountry;
-    averageDamageByCountry = getAverageMetricByCountry([
-        'Total_Damage', "Total_Damage_('000_US$)", 'Total_Damage_000_US$'
-    ]);
+    averageDamageByCountry = getAverageDamageByCountryFromJSON(getFilteredData());
     return averageDamageByCountry;
 }
 
 function getAverageAffectedByCountry() {
     if (averageAffectedByCountry) return averageAffectedByCountry;
-    averageAffectedByCountry = getAverageMetricByCountry(['Total_Affected'], 0);
+    averageAffectedByCountry = getAverageAffectedByCountryFromJSON(getFilteredData());
     return averageAffectedByCountry;
-}
-
-function getAverageAidByCountry() {
-    if (averageAidByCountry) return averageAidByCountry;
-    averageAidByCountry = getAverageMetricByCountry([
-        "AID_Contribution_('000_US$)", "AID_Contribution_000_US$", "Aid_Contribution"
-    ], 0);
-    return averageAidByCountry;
 }
 
 function getDominantDisasterTypeByCountry() {
     if (dominantDisasterTypeByCountry) return dominantDisasterTypeByCountry;
-    const typeCountsByCountry = {};
-    getFilteredData().filter(isNaturalDisaster).forEach(disaster => {
-        if (!disaster.ISO || !disaster.Disaster_Type) return;
-        const disasterType = String(disaster.Disaster_Type).trim();
-        if (!disasterType) return;
-        if (!typeCountsByCountry[disaster.ISO]) typeCountsByCountry[disaster.ISO] = {};
-        typeCountsByCountry[disaster.ISO][disasterType] = (typeCountsByCountry[disaster.ISO][disasterType] || 0) + 1;
-    });
-    dominantDisasterTypeByCountry = {};
-    Object.entries(typeCountsByCountry).forEach(([iso, counts]) => {
-        const dominantType = Object.entries(counts)
-            .sort((a, b) => {
-                const diff = b[1] - a[1];
-                if (diff !== 0) return diff;
-                return getDisasterTypeOrder(a[0]) - getDisasterTypeOrder(b[0]);
-            })[0][0];
-        dominantDisasterTypeByCountry[iso] = dominantType;
-    });
+    dominantDisasterTypeByCountry = getDominantDisasterTypeByCountryFromJSON(getFilteredData());
     return dominantDisasterTypeByCountry;
 }
 

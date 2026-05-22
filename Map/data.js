@@ -1,48 +1,220 @@
 let DATA = [];
 let WORST_BY_COUNTRY = [];
+let GLOBAL_SUMMARY = null;
 
 async function loadData() {
-    console.log(DATA[0])
-    const res = await fetch("emdat_data.xlsx");
-    const buffer = await res.arrayBuffer();
+    return loadPreprocessedData();
+}
 
-    const workbook = XLSX.read(buffer, { type: "array" });
-    const sheet = workbook.Sheets["EM-DAT Data"];
-    const raw = XLSX.utils.sheet_to_json(sheet);
+async function loadPreprocessedData() {
+    const [disasters, globalSummary] = await Promise.all([
+        fetchJSON('data/disasters_clean.json'),
+        fetchJSON('data/global_summary.json')
+    ]);
 
-    DATA = raw.map(cleanColumns);
-    computeWorstByCountry();
-    console.log("DATA LOADED:", DATA.length);
-    console.log(DATA[0]); 
+    DATA = disasters;
+    GLOBAL_SUMMARY = globalSummary;
+    WORST_BY_COUNTRY = getDeadliestDisastersByCountry(DATA);
 
+    console.log('JSON DATA LOADED:', DATA.length);
     return DATA;
 }
 
-function computeWorstByCountry() {
-    const byCountry = {};
-    DATA.filter(d => d.Total_Deaths > 0).forEach(d => {
-        if (!d.ISO) return;
-        if (!byCountry[d.ISO] || d.Total_Deaths > byCountry[d.ISO].Total_Deaths)
-            byCountry[d.ISO] = d;
-    });
-    WORST_BY_COUNTRY = Object.values(byCountry);
-    return WORST_BY_COUNTRY;
+async function fetchJSON(path) {
+    const res = await fetch(path);
+    if (!res.ok) {
+        throw new Error(`Missing preprocessed data file: ${path}`);
+    }
+    return res.json();
 }
 
-function cleanColumns(row) {
-    const r = {};
-    for (let k in row) {
-        const nk = k.trim()
-            .replace(/\s+/g, "_")
-            .replace(/\./g, "")
-            .replace(/\//g, "_");
-        r[nk] = row[k];
+function showMissingDataOverlay() {
+    const overlay = document.getElementById('data-missing-overlay');
+    if (overlay) overlay.classList.remove('hidden');
+}
+
+function getAllDisasters() {
+    return DATA;
+}
+
+function getGlobalSummary() {
+    return GLOBAL_SUMMARY;
+}
+
+function getDisasterISO(disaster) {
+    return disaster.iso3;
+}
+
+function getDisasterCountry(disaster) {
+    return disaster.country;
+}
+
+function getDisasterRegion(disaster) {
+    return disaster.region;
+}
+
+function getDisasterSubregion(disaster) {
+    return disaster.subregion;
+}
+
+function getDisasterGroup(disaster) {
+    return disaster.disaster_group;
+}
+
+function getDisasterType(disaster) {
+    return disaster.disaster_type;
+}
+
+function getDisasterSubtype(disaster) {
+    return disaster.disaster_subtype;
+}
+
+function getDisasterLocation(disaster) {
+    return disaster.location;
+}
+
+function getDisasterStartYear(disaster) {
+    return disaster.start_year;
+}
+
+function getDisasterEndYear(disaster) {
+    return disaster.end_year;
+}
+
+function getDisasterStartMonth(disaster) {
+    return disaster.start_month;
+}
+
+function getDisasterEndMonth(disaster) {
+    return disaster.end_month;
+}
+
+function getDisasterDeaths(disaster) {
+    return disaster.total_deaths;
+}
+
+function getDisasterAffected(disaster) {
+    return disaster.total_affected;
+}
+
+function getDisasterDamage(disaster) {
+    return disaster.total_damage_usd_000;
+}
+
+function getDisasterLabel(disaster) {
+    const type = getDisasterType(disaster);
+    const subtype = getDisasterSubtype(disaster);
+
+    if (type && subtype && type !== subtype) {
+        return `${type}: ${subtype}`;
     }
 
-    // Normalise historical ISO codes to modern equivalents
-    if (r.ISO) {
-        r.ISO = resolveISO(String(r.ISO).trim().toUpperCase());
-    }
-    
-    return r;
+    return type || subtype || 'Unknown disaster';
+}
+
+function getDisastersInYearRange(startYear, endYear, disasters = DATA) {
+    return disasters.filter(disaster => {
+        const start = Number(getDisasterStartYear(disaster));
+        const end = Number(getDisasterEndYear(disaster));
+
+        if (!Number.isFinite(start) || !Number.isFinite(end)) return false;
+
+        return end >= startYear && start <= endYear;
+    });
+}
+
+function getDeadliestDisastersByCountry(disasters = DATA) {
+    const byCountry = {};
+
+    disasters.forEach(disaster => {
+        const iso = getDisasterISO(disaster);
+        const deaths = getDisasterDeaths(disaster);
+
+        if (!iso || deaths === null || deaths === undefined || deaths <= 0) return;
+
+        if (!byCountry[iso] || deaths > getDisasterDeaths(byCountry[iso])) {
+            byCountry[iso] = disaster;
+        }
+    });
+
+    return Object.values(byCountry);
+}
+
+function getDeadliestDisasterForCountry(iso3, disasters = DATA) {
+    return getDeadliestDisastersByCountry(disasters)
+        .find(disaster => getDisasterISO(disaster) === iso3) || null;
+}
+
+function getCountryDisasterCountsFromJSON(disasters = DATA) {
+    const counts = {};
+
+    disasters.forEach(disaster => {
+        const iso = getDisasterISO(disaster);
+        if (!iso) return;
+        counts[iso] = (counts[iso] || 0) + 1;
+    });
+
+    return counts;
+}
+
+function getAverageMetricByCountryFromJSON(metricGetter, decimals = 0, disasters = DATA) {
+    const totals = {};
+    const counts = {};
+
+    disasters.forEach(disaster => {
+        const iso = getDisasterISO(disaster);
+        const value = metricGetter(disaster);
+
+        if (!iso || value === null || value === undefined || value === '') return;
+
+        const numberValue = Number(value);
+        if (!Number.isFinite(numberValue)) return;
+
+        totals[iso] = (totals[iso] || 0) + numberValue;
+        counts[iso] = (counts[iso] || 0) + 1;
+    });
+
+    const averages = {};
+    const factor = 10 ** decimals;
+
+    Object.entries(totals).forEach(([iso, total]) => {
+        averages[iso] = Math.round((total / counts[iso]) * factor) / factor;
+    });
+
+    return averages;
+}
+
+function getAverageDeathsByCountryFromJSON(disasters = DATA) {
+    return getAverageMetricByCountryFromJSON(getDisasterDeaths, 1, disasters);
+}
+
+function getAverageAffectedByCountryFromJSON(disasters = DATA) {
+    return getAverageMetricByCountryFromJSON(getDisasterAffected, 0, disasters);
+}
+
+function getAverageDamageByCountryFromJSON(disasters = DATA) {
+    return getAverageMetricByCountryFromJSON(getDisasterDamage, 0, disasters);
+}
+
+function getDominantDisasterTypeByCountryFromJSON(disasters = DATA) {
+    const typeCountsByCountry = {};
+
+    disasters.forEach(disaster => {
+        const iso = getDisasterISO(disaster);
+        const type = getDisasterType(disaster);
+
+        if (!iso || !type) return;
+
+        if (!typeCountsByCountry[iso]) typeCountsByCountry[iso] = {};
+        typeCountsByCountry[iso][type] = (typeCountsByCountry[iso][type] || 0) + 1;
+    });
+
+    const result = {};
+
+    Object.entries(typeCountsByCountry).forEach(([iso, counts]) => {
+        result[iso] = Object.entries(counts)
+            .sort((a, b) => b[1] - a[1])[0][0];
+    });
+
+    return result;
 }
