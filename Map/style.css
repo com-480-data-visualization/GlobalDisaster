@@ -306,6 +306,250 @@ body {
 }
 
 /* =========================
+   GLOBAL OVERVIEW PANEL
+========================= */
+
+.global-panel {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 4;
+
+    width: 320px;
+    max-height: calc(100vh - 36px);
+    overflow-y: auto;
+
+    padding: 12px;
+    border-radius: 22px;
+
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #d8d8d8;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+
+    font-family: Helvetica, Arial, sans-serif;
+}
+
+.global-panel.hidden {
+    display: none;
+}
+
+.global-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 4px 8px 8px;
+}
+
+.global-panel-header h2 {
+    margin: 0;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+
+    color: #1f3b73;
+}
+
+
+.global-panel-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.global-mini-card,
+.global-overview-card {
+    padding: 12px;
+
+    border-radius: 14px;
+    background: white;
+    border: 1px solid #ececec;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.global-section-title {
+    margin-bottom: 8px;
+
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #888;
+}
+
+.global-deadliest-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.global-deadliest-row {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    gap: 5px;
+    align-items: baseline;
+
+    font-size: 11px;
+    color: #444;
+}
+
+.global-deadliest-rank {
+    font-weight: 800;
+    color: #1f3b73;
+}
+
+.global-deadliest-name {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.global-deadliest-year {
+    color: #aaa;
+}
+
+.global-deadliest-deaths {
+    font-weight: 800;
+    color: #1f3b73;
+}
+
+.global-year-bars {
+    height: 72px;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+
+    padding: 6px 6px 2px;
+}
+
+.global-year-bar {
+    flex: 1;
+    min-width: 0;
+    border-radius: 4px 4px 0 0;
+    background: #1f3b73;
+    opacity: 0.35;
+}
+
+.global-year-labels {
+    display: flex;
+    justify-content: space-between;
+
+    padding: 0 8px;
+
+    font-size: 11px;
+    color: #aaa;
+}
+
+.global-stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+
+    margin-bottom: 14px;
+}
+
+.global-stat-box {
+    padding: 9px 6px;
+
+    border-radius: 10px;
+    border: 1px solid #b3c9f0;
+    background: #e8f0fb;
+
+    text-align: center;
+}
+
+.global-stat-box strong {
+    display: block;
+
+    font-size: 18px;
+    color: #1f3b73;
+}
+
+.global-stat-box span {
+    display: block;
+
+    margin-top: 3px;
+    font-size: 10px;
+    color: #aaa;
+}
+
+.global-list-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.global-type-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 32px;
+    gap: 6px;
+    align-items: center;
+
+    font-size: 11px;
+    color: #555;
+}
+
+.global-type-track {
+    height: 11px;
+    border-radius: 999px;
+    background: #f0f0f0;
+    overflow: hidden;
+}
+
+.global-type-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.global-type-percent {
+    text-align: right;
+    font-weight: 700;
+    color: #333;
+}
+.global-type-row:nth-child(1) .global-type-percent { color: #1f3b73; }
+.global-type-row:nth-child(2) .global-type-percent { color: #2c5aa0; }
+.global-type-row:nth-child(3) .global-type-percent { color: #5d7fbf; }
+.global-type-row:nth-child(4) .global-type-percent { color: #8faadc; }
+
+.global-divider {
+    height: 1px;
+    margin: 12px 0;
+    background: #eeeeee;
+}
+
+.global-region-list,
+.global-key-facts {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.global-region-row,
+.global-key-facts div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    font-size: 11px;
+    color: #555;
+}
+
+.global-region-row strong,
+.global-key-facts strong {
+    color: #333;
+}
+
+.global-region-row:nth-child(1) strong { color: #1f3b73; }
+.global-region-row:nth-child(2) strong { color: #2c5aa0; }
+.global-region-row:nth-child(3) strong { color: #5d7fbf; }
+.global-region-row:nth-child(4) strong { color: #8faadc; }
+
+
+/* =========================
    COUNTRY PANEL
 ========================= */
 
@@ -471,15 +715,15 @@ body {
     left: 50%;
     transform: translateX(-50%);
 
-    bottom: 18px;
+    bottom: 14px;
 
-    width: min(900px, 70vw);
+    width: min(720px, 58vw);
 
     z-index: 5;
 
-    padding: 14px 18px;
+    padding: 9px 14px;
 
-    border-radius: 14px;
+    border-radius: 12px;
 
     background: rgba(255,255,255,0.96);
 
@@ -495,9 +739,9 @@ body {
     justify-content: space-between;
     align-items: center;
 
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 
-    font-size: 12px;
+    font-size: 11px;
     color: #444;
 }
 
@@ -508,7 +752,7 @@ body {
 
 .timeline-sliders {
     position: relative;
-    height: 30px;
+    height: 24px;
 }
 
 .timeline-sliders input[type="range"] {
@@ -529,8 +773,8 @@ body {
 
     appearance: none;
 
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
 
     border-radius: 50%;
 

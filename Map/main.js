@@ -207,8 +207,8 @@ function setupTimeline() {
 const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/light-v11',
-    center: [0, 40],
-    zoom: 2.5
+    center: [5, 25],
+    zoom: 1.75
 });
 
 
@@ -222,6 +222,7 @@ map.on('load', async () => {
         showMissingDataOverlay();
         return;
     }
+    renderGlobalPanel();
     setupTimeline();
     //await fetchWorldGeoJSON();
 
@@ -479,6 +480,139 @@ updateMap();
 await fetchWorldGeoJSON();
 
 });
+
+
+function renderGlobalPanel() {
+    const summary = getGlobalSummary();
+    if (!summary) return;
+
+    document.getElementById('global-total-events').textContent =
+        formatCompactNumber(summary.total_events);
+
+    document.getElementById('global-country-count').textContent =
+        formatCompactNumber(summary.country_count);
+
+    document.getElementById('global-avg-events').textContent =
+        `~${formatCompactNumber(summary.avg_events_per_year)}`;
+
+    document.getElementById('global-data-range').textContent =
+        summary.data_range_label;
+
+    document.getElementById('global-source').textContent =
+        summary.source;
+
+    renderGlobalDeadliest(summary.deadliest_events_all_time || []);
+    renderGlobalYearBars(summary.events_per_year || []);
+    renderGlobalCommonTypes(summary.most_common_types || []);
+    renderGlobalRegions(summary.top_regions_by_event_count || []);
+}
+
+function renderGlobalDeadliest(events) {
+    const container = document.getElementById('global-deadliest-list');
+    const topEvents = events.slice(0, 5);
+
+    container.innerHTML = topEvents.map((event, index) => {
+        const label = event.subtype && event.subtype !== event.type
+            ? `${event.type}: ${event.subtype}`
+            : event.type;
+
+        return `
+            <div class="global-deadliest-row">
+                <span class="global-deadliest-rank">${index + 1}.</span>
+                <span class="global-deadliest-name" title="${label}">
+                    ${label} <span class="global-deadliest-year">${event.start_year}</span>
+                </span>
+                <span class="global-deadliest-deaths">${formatCompactNumber(event.total_deaths)}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderGlobalYearBars(eventsPerYear) {
+    const container = document.getElementById('global-year-bars');
+
+    if (!eventsPerYear.length) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const bucketCount = 8;
+    const firstYear = eventsPerYear[0].year;
+    const lastYear = eventsPerYear[eventsPerYear.length - 1].year;
+    const bucketSize = Math.ceil((lastYear - firstYear + 1) / bucketCount);
+    const buckets = Array.from({ length: bucketCount }, () => 0);
+
+    eventsPerYear.forEach(item => {
+        const index = Math.min(
+            bucketCount - 1,
+            Math.floor((item.year - firstYear) / bucketSize)
+        );
+
+        buckets[index] += item.count;
+    });
+
+    const maxBucket = Math.max(...buckets, 1);
+
+    container.innerHTML = buckets.map((count, index) => {
+        const height = Math.max(12, Math.round((count / maxBucket) * 90));
+        const opacity = 0.25 + (index / Math.max(1, bucketCount - 1)) * 0.75;
+
+        return `
+            <div 
+                class="global-year-bar" 
+                title="${count} events" 
+                style="height:${height}px; opacity:${opacity}">
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('global-year-start').textContent = firstYear;
+    document.getElementById('global-year-end').textContent = lastYear;
+}
+
+function renderGlobalCommonTypes(types) {
+    const container = document.getElementById('global-common-types');
+    const colors = ['#1f3b73', '#2c5aa0', '#5d7fbf', '#8faadc', '#b3c9f0'];
+
+    container.innerHTML = types.slice(0, 4).map((item, index) => `
+        <div class="global-type-row">
+            <span>${item.type}</span>
+            <div class="global-type-track">
+                <div 
+                    class="global-type-fill" 
+                    style="width:${item.percentage}%; background:${colors[index % colors.length]}">
+                </div>
+            </div>
+            <span class="global-type-percent">${Math.round(item.percentage)}%</span>
+        </div>
+    `).join('');
+}
+
+function renderGlobalRegions(regions) {
+    const container = document.getElementById('global-top-regions');
+
+    container.innerHTML = regions.slice(0, 4).map(region => `
+        <div class="global-region-row">
+            <span>${region.region}</span>
+            <strong>${Math.round(region.percentage)}%</strong>
+        </div>
+    `).join('');
+}
+
+function formatCompactNumber(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '—';
+
+    if (Math.abs(number) >= 1_000_000) {
+        return `${(number / 1_000_000).toFixed(1).replace('.0', '')}M`;
+    }
+
+    if (Math.abs(number) >= 1_000) {
+        return `${Math.round(number / 1_000)}K`;
+    }
+
+    return number.toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
 
 // ─── Feature panel: dual-selection logic ───────────────────────────────────
 

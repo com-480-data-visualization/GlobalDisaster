@@ -78,6 +78,58 @@
         <div id="heatmap-legend-items"></div>
     </aside>
 
+    <aside id="global-panel" class="global-panel" aria-label="Global disaster overview">
+        <div class="global-panel-header">
+            <h2>Global Overview</h2>
+        </div>
+
+        <div class="global-panel-body">
+            <section class="global-mini-card">
+                <div class="global-section-title">Deadliest events (all time)</div>
+                <div id="global-deadliest-list" class="global-deadliest-list"></div>
+            </section>
+
+            <section class="global-mini-card">
+                <div class="global-section-title">Events per year</div>
+                <div id="global-year-bars" class="global-year-bars"></div>
+                <div class="global-year-labels">
+                    <span id="global-year-start">1900</span>
+                    <span id="global-year-end">2025</span>
+                </div>
+            </section>
+
+            <section class="global-overview-card">
+                <div class="global-stat-row">
+                    <div class="global-stat-box">
+                        <strong id="global-total-events">—</strong>
+                        <span>total events</span>
+                    </div>
+                    <div class="global-stat-box">
+                        <strong id="global-country-count">—</strong>
+                        <span>countries</span>
+                    </div>
+                </div>
+
+                <div class="global-section-title">Most common types</div>
+                <div id="global-common-types" class="global-list-bars"></div>
+
+                <div class="global-divider"></div>
+
+                <div class="global-section-title">Top regions by event count</div>
+                <div id="global-top-regions" class="global-region-list"></div>
+
+                <div class="global-divider"></div>
+
+                <div class="global-section-title">Key facts</div>
+                <div class="global-key-facts">
+                    <div><span>Avg. events / year</span><strong id="global-avg-events">—</strong></div>
+                    <div><span>Data range</span><strong id="global-data-range">—</strong></div>
+                    <div><span>Source</span><strong id="global-source">—</strong></div>
+                </div>
+            </section>
+        </div>
+    </aside>
+
     <div id="panel" class="panel hidden">
         <div class="panel-header">
             <img id="country-flag" src="" alt="flag">
