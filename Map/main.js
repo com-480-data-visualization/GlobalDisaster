@@ -482,6 +482,16 @@ await fetchWorldGeoJSON();
 });
 
 
+function collapseGlobalPanel() {
+    document.getElementById('global-panel')?.classList.add('collapsed');
+    document.getElementById('global-panel-open-button')?.classList.remove('hidden');
+}
+
+function expandGlobalPanel() {
+    document.getElementById('global-panel')?.classList.remove('collapsed');
+    document.getElementById('global-panel-open-button')?.classList.add('hidden');
+}
+
 function renderGlobalPanel() {
     const summary = getGlobalSummary();
     if (!summary) return;

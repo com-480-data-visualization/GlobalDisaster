@@ -81,6 +81,9 @@
     <aside id="global-panel" class="global-panel" aria-label="Global disaster overview">
         <div class="global-panel-header">
             <h2>Global Overview</h2>
+            <button class="global-panel-toggle" onclick="collapseGlobalPanel()" aria-label="Hide global overview">
+                <span>›</span>
+            </button>
         </div>
 
         <div class="global-panel-body">
@@ -129,6 +132,10 @@
             </section>
         </div>
     </aside>
+
+    <button id="global-panel-open-button" class="global-panel-open-button hidden" onclick="expandGlobalPanel()" aria-label="Show global overview">
+        <span>‹</span>
+    </button>
 
     <div id="panel" class="panel hidden">
         <div class="panel-header">
