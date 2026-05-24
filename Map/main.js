@@ -14,6 +14,9 @@ let selectedId = null;
 let selectedFeature = null;
 let _hoveredMapContinent = null; 
 
+let globalPanelStateBeforeCountryPanel = null;
+let activeCountryPanel = null;
+
 let minTimelineYear = null;
 let maxTimelineYear = null;
 
@@ -177,6 +180,7 @@ function setupTimeline() {
         invalidateFeatureCaches();
 
         updateMap();
+        refreshOpenCountryPanel();
     });
 
     upper.addEventListener('input', () => {
@@ -192,6 +196,7 @@ function setupTimeline() {
         invalidateFeatureCaches();
 
         updateMap();
+        refreshOpenCountryPanel();
     });
 
     refreshTimelineLabel();
@@ -474,8 +479,6 @@ map.on('mouseleave', 'cartogram-fill', () => {
 BubbleOverlay.init(map);
 ContinentPanel.init(map);
 
-makeDraggable(document.getElementById('panel'));
-
 updateMap();
 await fetchWorldGeoJSON();
 
@@ -490,6 +493,41 @@ function collapseGlobalPanel() {
 function expandGlobalPanel() {
     document.getElementById('global-panel')?.classList.remove('collapsed');
     document.getElementById('global-panel-open-button')?.classList.add('hidden');
+}
+
+function hideGlobalPanelWhileCountryPanelIsOpen() {
+    const globalPanel = document.getElementById('global-panel');
+    const openButton = document.getElementById('global-panel-open-button');
+
+    if (!globalPanel || !openButton) return;
+
+    if (globalPanelStateBeforeCountryPanel === null) {
+        globalPanelStateBeforeCountryPanel = {
+            wasCollapsed: globalPanel.classList.contains('collapsed')
+        };
+    }
+
+    globalPanel.classList.add('hidden');
+    openButton.classList.add('hidden');
+}
+
+function restoreGlobalPanelAfterCountryPanelClose() {
+    const globalPanel = document.getElementById('global-panel');
+    const openButton = document.getElementById('global-panel-open-button');
+
+    if (!globalPanel || !openButton || globalPanelStateBeforeCountryPanel === null) return;
+
+    globalPanel.classList.remove('hidden');
+
+    if (globalPanelStateBeforeCountryPanel.wasCollapsed) {
+        globalPanel.classList.add('collapsed');
+        openButton.classList.remove('hidden');
+    } else {
+        globalPanel.classList.remove('collapsed');
+        openButton.classList.add('hidden');
+    }
+
+    globalPanelStateBeforeCountryPanel = null;
 }
 
 function renderGlobalPanel() {
@@ -977,8 +1015,11 @@ function openPanel(country, geometry) {
     const margin = 20;
     panel.style.left = '';
     panel.style.right = margin + 'px';
-    panel.style.top = margin + 'px';
+    panel.style.top = '50%';
+    panel.style.transform = 'translateY(-50%)';
     panel.classList.remove('hidden');
+
+    hideGlobalPanelWhileCountryPanelIsOpen();
 
     const iso2 = country.iso_3166_1.toLowerCase();
     const iso3 = country.iso_3166_1_alpha_3;
@@ -986,26 +1027,11 @@ function openPanel(country, geometry) {
     document.getElementById('country-name').innerText = country.name_en;
     document.getElementById('country-flag').src = `https://flagcdn.com/w80/${iso2}.png`;
 
-    const hit = getDeadliestDisasterForCountry(iso3);
-    const container = document.getElementById('worst-by-country-container');
-
-    if (hit) {
-        container.innerHTML = `
-            <div class="worst-by-country-section-title">Deadliest Disaster Recorded</div>
-            <div class="worst-by-country-badge" style="animation-delay:0s">
-                <div class="badge-top-row">
-                    <div class="badge-name">${getDisasterLabel(hit)}</div>
-                    <span class="badge-year">${getDisasterStartYear(hit)}</span>
-                </div>
-                <span class="badge-deaths">${getDisasterDeaths(hit).toLocaleString()} deaths</span>
-                <div class="badge-bottom-row">
-                    <span class="badge-type">${getDisasterSubtype(hit) || getDisasterType(hit) || 'Unknown type'}</span>
-                </div>
-            </div>
-        `;
-    } else {
-        container.innerHTML = '<div class="worst-by-country-section-title">No recorded data</div>';
-    }
+    activeCountryPanel = {
+        iso3,
+        fallbackName: country.name_en
+    };
+    renderCountryPanelContent(iso3, country.name_en, getFilteredData());
 }
 
 function openPanelFromCartogram(feature) {
@@ -1018,9 +1044,11 @@ function openPanelFromCartogram(feature) {
 
     panel.style.left = '';
     panel.style.right = margin + 'px';
-    panel.style.top = margin + 'px';
-
+    panel.style.top = '50%';
+    panel.style.transform = 'translateY(-50%)';
     panel.classList.remove('hidden');
+
+    hideGlobalPanelWhileCountryPanelIsOpen();
 
     const iso2 = props.ISO_A2.toLowerCase();
     const iso3 = props._iso3;
@@ -1031,39 +1059,163 @@ function openPanelFromCartogram(feature) {
     document.getElementById('country-flag').src =
         `https://flagcdn.com/w80/${iso2}.png`;
 
-    const hit = getDeadliestDisasterForCountry(iso3);
+    activeCountryPanel = {
+        iso3,
+        fallbackName: props.ADMIN || props.NAME || iso3
+    };
+    renderCountryPanelContent(iso3, props.ADMIN || props.NAME || iso3, getFilteredData());
+}
 
-    const container = document.getElementById('worst-by-country-container');
+function refreshOpenCountryPanel() {
+    const panel = document.getElementById('panel');
 
-    if (hit) {
-        container.innerHTML = `
-            <div class="worst-by-country-section-title">
-                Deadliest Disaster Recorded
-            </div>
-
-            <div class="worst-by-country-badge">
-                <div class="badge-top-row">
-                    <div class="badge-name">${getDisasterLabel(hit)}</div>
-                    <span class="badge-year">${getDisasterStartYear(hit)}</span>
-                </div>
-                <span class="badge-deaths">
-                    ${getDisasterDeaths(hit).toLocaleString()} deaths
-                </span>
-                <div class="badge-bottom-row">
-                    <span class="badge-type">
-                        ${getDisasterSubtype(hit) || getDisasterType(hit) || 'Unknown type'}
-                    </span>
-                </div>
-            </div>
-        `;
-    } else {
-        container.innerHTML =
-            '<div class="worst-by-country-section-title">No recorded data</div>';
+    if (!activeCountryPanel || panel.classList.contains('hidden')) {
+        return;
     }
+
+    renderCountryPanelContent(
+        activeCountryPanel.iso3,
+        activeCountryPanel.fallbackName,
+        getFilteredData()
+    );
+}
+
+function renderCountryPanelContent(iso3, fallbackName, disasters) {
+    const container = document.getElementById('worst-by-country-container');
+    const summary = getCountrySummary(iso3, disasters);
+
+    if (!summary) {
+        container.innerHTML = '<div class="worst-by-country-section-title">No recorded data</div>';
+        return;
+    }
+
+    const deadliest = summary.deadliest_disaster;
+    const costliest = summary.costliest_disaster;
+    const yearly = getCountryYearlySeries(iso3, disasters);
+    const types = getCountryDisasterTypes(iso3, disasters);
+    const countryName = summary.country || fallbackName;
+    const regionText = [summary.region, summary.subregion].filter(Boolean).join(' | ');
+
+    container.innerHTML = `
+        <div class="country-panel-subtitle">${regionText || 'Region unavailable'}</div>
+
+        <section class="country-overview-card">
+            <div class="country-section-title">Overview</div>
+            ${renderCountryMetricRow('Total disasters', formatCompactNumber(summary.total_disasters))}
+            ${renderCountryMetricRow('Total deaths', formatCompactNumber(summary.total_deaths))}
+            ${renderCountryMetricRow('Total affected', formatCompactNumber(summary.total_affected))}
+            ${renderCountryMetricRow('Avg. disasters / year', summary.avg_disasters_per_year.toFixed(1))}
+            ${renderCountryMetricRow('Economic damage', formatMoneyFromUsdThousands(summary.total_damage_usd_000))}
+        </section>
+
+        ${deadliest ? renderCountryEventCard('Deadliest disaster recorded', deadliest, `${formatCompactNumber(getDisasterDeaths(deadliest))} deaths`) : ''}
+        ${costliest ? renderCountryEventCard('Costliest disaster recorded', costliest, `${formatMoneyFromUsdThousands(getDisasterDamage(costliest))} damage`) : ''}
+
+        <section class="country-chart-card">
+            <div class="country-section-title">Disasters over time</div>
+            ${renderCountryTimeline(yearly)}
+        </section>
+
+        <section class="country-chart-card">
+            <div class="country-section-title">By disaster type</div>
+            ${renderCountryTypeBars(types)}
+        </section>
+    `;
+}
+
+function renderCountryMetricRow(label, value) {
+    return `
+        <div class="country-metric-row">
+            <span>${label}</span>
+            <strong>${value}</strong>
+        </div>
+    `;
+}
+
+function renderCountryEventCard(title, disaster, valueLabel) {
+    return `
+        <section class="country-event-card">
+            <div class="country-event-title">${title}: ${getDisasterStartYear(disaster)} ${getDisasterType(disaster) || 'Disaster'}</div>
+            <div class="country-event-detail">
+                <span>${valueLabel}</span>
+                <span>${getDisasterSubtype(disaster) || getDisasterLocation(disaster) || ''}</span>
+            </div>
+        </section>
+    `;
+}
+
+function renderCountryTimeline(yearly) {
+    if (!yearly.length) return '<div class="country-empty-chart">No yearly data</div>';
+
+    const width = 240;
+    const height = 96;
+    const padding = 14;
+    const maxCount = Math.max(...yearly.map(d => d.count), 1);
+    const minYear = yearly[0].year;
+    const maxYear = yearly[yearly.length - 1].year;
+    const yearSpan = Math.max(1, maxYear - minYear);
+
+    const points = yearly.map(item => {
+        const x = padding + ((item.year - minYear) / yearSpan) * (width - padding * 2);
+        const y = height - padding - (item.count / maxCount) * (height - padding * 2);
+        return `${x},${y}`;
+    }).join(' ');
+
+    return `
+        <svg class="country-timeline-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+            <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="country-chart-axis" />
+            <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="country-chart-axis" />
+            <polyline points="${points}" class="country-timeline-line" />
+        </svg>
+        <div class="country-chart-labels">
+            <span>${minYear}</span>
+            <span>${maxYear}</span>
+        </div>
+    `;
+}
+
+function renderCountryTypeBars(types) {
+    if (!types.length) return '<div class="country-empty-chart">No type data</div>';
+
+    const colors = ['#1f3b73', '#2c5aa0', '#5d7fbf', '#8faadc', '#b3c9f0', '#d9e4f7'];
+    const maxCount = Math.max(...types.map(d => d.count), 1);
+
+    return types.slice(0, 6).map((item, index) => `
+        <div class="country-type-row">
+            <span>${item.type}</span>
+            <div class="country-type-track">
+                <div class="country-type-fill" style="width:${(item.count / maxCount) * 100}%; background:${colors[index % colors.length]}"></div>
+            </div>
+            <strong>${formatCompactNumber(item.count)}</strong>
+        </div>
+    `).join('');
+}
+
+function formatMoneyFromUsdThousands(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number <= 0) return '—';
+
+    const usd = number * 1000;
+
+    if (usd >= 1_000_000_000_000) {
+        return `$${(usd / 1_000_000_000_000).toFixed(1).replace('.0', '')}T`;
+    }
+
+    if (usd >= 1_000_000_000) {
+        return `$${(usd / 1_000_000_000).toFixed(1).replace('.0', '')}B`;
+    }
+
+    if (usd >= 1_000_000) {
+        return `$${(usd / 1_000_000).toFixed(1).replace('.0', '')}M`;
+    }
+
+    return `$${formatCompactNumber(usd)}`;
 }
 
 function closePanel() {
     document.getElementById('panel').classList.add('hidden');
+    activeCountryPanel = null;
+    restoreGlobalPanelAfterCountryPanelClose();
     if (selectedId !== null) {
         map.setFeatureState(
             { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
@@ -1082,6 +1234,7 @@ function makeDraggable(el) {
         startY = e.clientY;
         startLeft = el.offsetLeft;
         startTop = el.offsetTop;
+        el.style.transform = 'none';
         document.addEventListener('mousemove', onDrag);
         document.addEventListener('mouseup', stopDrag);
     });

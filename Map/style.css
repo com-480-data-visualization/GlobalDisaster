@@ -645,80 +645,86 @@ body {
 .panel {
     position: absolute;
 
-    width: 300px;
+    width: 320px;
+    max-height: calc(100vh - 36px);
+    overflow-y: auto;
 
-    border-radius: 20px;
+    padding: 12px;
+    border-radius: 22px;
 
-    background: white;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #d8d8d8;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
 
-    padding: 20px;
+    z-index: 6;
 
-    border: 2px solid #c6c6c6;
-
-    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-
-    z-index: 3;
-
-    cursor: grab;
-
-    min-height: 200px;
-    max-height: 60vh;
+    font-family: Helvetica, Arial, sans-serif;
 
     display: flex;
     flex-direction: column;
 }
 
-.panel:active {
-    cursor: grabbing;
-}
-
 .panel-header {
     display: grid;
-
-    grid-template-columns: 48px 1fr 24px;
-
+    grid-template-columns: 32px 1fr 26px;
     align-items: center;
-
     gap: 10px;
 
-    padding-bottom: 12px;
-
-    border-bottom: 1px solid #efefef;
+    padding: 4px 8px 8px;
 }
 
 .panel-header h2 {
     margin: 0;
 
-    text-align: center;
+    text-align: left;
 
-    font-size: 20px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 700;
 
-    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 
     color: #1f3b73;
 }
 
 .panel-header img {
-    width: 48px;
-    border-radius: 4px;
+    width: 32px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
 .panel-body {
-    padding-top: 14px;
+    padding-top: 0;
 
     overflow-y: auto;
     flex: 1;
 }
 
 .close-btn {
+    width: 26px;
+    height: 26px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
     border: none;
-    background: none;
+    border-radius: 999px;
+    background: #1f3b73;
+    color: white;
 
     cursor: pointer;
 
-    font-size: 16px;
-    color: #888;
+    font-size: 13px;
+    font-weight: 700;
+
+    transition: background 0.2s;
+}
+
+.close-btn:hover {
+    background: #2c5aa0;
 }
 
 .hidden {
@@ -732,15 +738,17 @@ body {
 #worst-by-country-container {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .worst-by-country-section-title {
+    margin-bottom: 2px;
+
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 800;
 
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.08em;
 
     color: #888;
 }
@@ -748,15 +756,13 @@ body {
 .worst-by-country-badge {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
 
-    padding: 12px 14px;
+    padding: 12px;
 
-    border-radius: 12px;
-
-    background: linear-gradient(135deg, #fff8f0, #fff3e6);
-
-    border-left: 3px solid #f5a623;
+    border-radius: 10px;
+    border: 1px solid #b3c9f0;
+    background: #e8f0fb;
 }
 
 .badge-top-row,
@@ -767,30 +773,172 @@ body {
 }
 
 .badge-name {
-    font-size: 15px;
-    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    font-size: 13px;
+    font-weight: 700;
 
     color: #1f3b73;
 }
 
-.badge-year,
-.badge-type {
-    color: #888;
-}
-
 .badge-year {
-    font-size: 15px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #2c5aa0;
 }
 
 .badge-type {
     font-size: 11px;
+    color: #555;
 }
 
-.badge-deaths {
-    font-size: 13px;
-    font-weight: 600;
 
-    color: #c0392b;
+.badge-deaths {
+    font-size: 18px;
+    font-weight: 800;
+    color: #1f3b73;
+}
+
+.country-panel-subtitle {
+    margin: -2px 8px 2px;
+
+    font-size: 11px;
+    color: #888;
+}
+
+.country-overview-card,
+.country-chart-card {
+    padding: 12px;
+
+    border-radius: 14px;
+    background: white;
+    border: 1px solid #ececec;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.country-section-title {
+    margin-bottom: 8px;
+
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #888;
+}
+
+.country-metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 7px 0;
+    border-bottom: 1px solid #eeeeee;
+
+    font-size: 11px;
+    color: #555;
+}
+
+.country-metric-row:last-child {
+    border-bottom: none;
+}
+
+.country-metric-row strong {
+    color: #1f3b73;
+    font-weight: 800;
+}
+
+.country-event-card {
+    padding: 12px;
+
+    border-radius: 10px;
+    border: 1px solid #b3c9f0;
+    background: #e8f0fb;
+}
+
+.country-event-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #1f3b73;
+}
+
+.country-event-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    margin-top: 4px;
+
+    font-size: 11px;
+    color: #555;
+}
+
+.country-timeline-svg {
+    width: 100%;
+    height: 96px;
+
+    border-radius: 10px;
+    background: #fafafa;
+    border: 1px solid #eeeeee;
+}
+
+.country-chart-axis {
+    stroke: #dddddd;
+    stroke-width: 1;
+}
+
+.country-timeline-line {
+    fill: none;
+    stroke: #1f3b73;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.country-chart-labels {
+    display: flex;
+    justify-content: space-between;
+
+    margin-top: 4px;
+
+    font-size: 10px;
+    color: #aaa;
+}
+
+.country-type-row {
+    display: grid;
+    grid-template-columns: 76px 1fr 32px;
+    gap: 6px;
+    align-items: center;
+
+    margin-bottom: 7px;
+
+    font-size: 11px;
+    color: #555;
+}
+
+.country-type-track {
+    height: 12px;
+    border-radius: 999px;
+    background: #f0f0f0;
+    overflow: hidden;
+}
+
+.country-type-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.country-type-row strong {
+    text-align: right;
+    color: #1f3b73;
+}
+
+.country-empty-chart {
+    font-size: 11px;
+    color: #aaa;
 }
 
 
