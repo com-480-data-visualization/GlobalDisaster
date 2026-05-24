@@ -184,6 +184,7 @@ function setupTimeline() {
         refreshTimelineLabel();
 
         invalidateFeatureCaches();
+        renderGlobalPanel();
 
         updateMap();
         refreshOpenCountryPanel();
@@ -200,6 +201,7 @@ function setupTimeline() {
         refreshTimelineLabel();
 
         invalidateFeatureCaches();
+        renderGlobalPanel();
 
         updateMap();
         refreshOpenCountryPanel();
@@ -267,6 +269,7 @@ function applyTimelineInputYear() {
 
     renderTimelineHistogram();
     invalidateFeatureCaches();
+    renderGlobalPanel();
     updateMap();
     refreshOpenCountryPanel();
 
@@ -299,9 +302,9 @@ map.on('load', async () => {
         showMissingDataOverlay();
         return;
     }
-    renderGlobalPanel();
     setupDisasterTypeFilter();
     setupTimeline();
+    renderGlobalPanel();
     //await fetchWorldGeoJSON();
 
     // Base Mapbox vector tile layer (always present, used for interaction)
@@ -604,7 +607,7 @@ function restoreGlobalPanelAfterCountryPanelClose() {
 }
 
 function renderGlobalPanel() {
-    const summary = getGlobalSummary();
+    const summary = buildGlobalPanelSummary(getTimelineFilteredData());
     if (!summary) return;
 
     document.getElementById('global-total-events').textContent =
@@ -623,9 +626,103 @@ function renderGlobalPanel() {
         summary.source;
 
     renderGlobalDeadliest(summary.deadliest_events_all_time || []);
-    renderGlobalYearBars(summary.events_per_year || []);
+    renderGlobalImpactByType(summary.deaths_by_type || []);
     renderGlobalCommonTypes(summary.most_common_types || []);
     renderGlobalRegions(summary.top_regions_by_event_count || []);
+}
+
+function buildGlobalPanelSummary(disasters) {
+    if (!disasters || disasters.length === 0) {
+        return {
+            total_events: 0,
+            country_count: 0,
+            avg_events_per_year: 0,
+            data_range_label: timeLowerBound === timeUpperBound
+                ? `${timeLowerBound}`
+                : `${timeLowerBound} - ${timeUpperBound}`,
+            source: 'EM-DAT',
+            deadliest_events_all_time: [],
+            deaths_by_type: [],
+            most_common_types: [],
+            top_regions_by_event_count: []
+        };
+    }
+
+    const countries = new Set();
+    const typeCounts = {};
+    const regionCounts = {};
+    const deathsByType = {};
+
+    disasters.forEach(disaster => {
+        const iso = getDisasterISO(disaster);
+        const type = getDisasterType(disaster) || 'Unknown';
+        const region = getDisasterRegion(disaster) || 'Unknown';
+        const deaths = Number(getDisasterDeaths(disaster));
+
+        if (iso) countries.add(iso);
+
+        typeCounts[type] = (typeCounts[type] || 0) + 1;
+        regionCounts[region] = (regionCounts[region] || 0) + 1;
+
+        if (Number.isFinite(deaths) && deaths > 0) {
+            deathsByType[type] = (deathsByType[type] || 0) + deaths;
+        }
+    });
+
+    const deadliestEvents = disasters
+        .filter(disaster => Number(getDisasterDeaths(disaster)) > 0)
+        .sort((a, b) => Number(getDisasterDeaths(b)) - Number(getDisasterDeaths(a)))
+        .slice(0, 5)
+        .map(disaster => ({
+            type: getDisasterType(disaster) || 'Unknown',
+            subtype: getDisasterSubtype(disaster) || '',
+            start_year: getDisasterStartYear(disaster),
+            total_deaths: getDisasterDeaths(disaster)
+        }));
+
+    // Removed yearlySeries block
+
+    const typeSeries = Object.entries(typeCounts)
+        .map(([type, count]) => ({
+            type,
+            count,
+            percentage: (count / disasters.length) * 100
+        }))
+        .sort((a, b) => b.count - a.count);
+
+    const regionSeries = Object.entries(regionCounts)
+        .map(([region, count]) => ({
+            region,
+            count,
+            percentage: (count / disasters.length) * 100
+        }))
+        .sort((a, b) => b.count - a.count);
+
+    const totalDeathsWithType = Object.values(deathsByType).reduce((sum, value) => sum + value, 0);
+
+    const deathsByTypeSeries = Object.entries(deathsByType)
+        .map(([type, deaths]) => ({
+            type,
+            deaths,
+            percentage: totalDeathsWithType > 0 ? (deaths / totalDeathsWithType) * 100 : 0
+        }))
+        .sort((a, b) => b.deaths - a.deaths);
+
+    const yearSpan = Math.max(1, timeUpperBound - timeLowerBound + 1);
+
+    return {
+        total_events: disasters.length,
+        country_count: countries.size,
+        avg_events_per_year: disasters.length / yearSpan,
+        data_range_label: timeLowerBound === timeUpperBound
+            ? `${timeLowerBound}`
+            : `${timeLowerBound} - ${timeUpperBound}`,
+        source: 'EM-DAT',
+        deadliest_events_all_time: deadliestEvents,
+        deaths_by_type: deathsByTypeSeries,
+        most_common_types: typeSeries,
+        top_regions_by_event_count: regionSeries
+    };
 }
 
 function renderGlobalDeadliest(events) {
@@ -649,46 +746,53 @@ function renderGlobalDeadliest(events) {
     }).join('');
 }
 
-function renderGlobalYearBars(eventsPerYear) {
-    const container = document.getElementById('global-year-bars');
 
-    if (!eventsPerYear.length) {
-        container.innerHTML = '';
+function renderGlobalImpactByType(items) {
+    const container = document.getElementById('global-impact-by-type');
+    if (!container) return;
+
+    const topItems = items.slice(0, 5);
+
+    if (!topItems.length) {
+        container.innerHTML = '<div class="global-impact-empty">No registered deaths data</div>';
         return;
     }
 
-    const bucketCount = 8;
-    const firstYear = eventsPerYear[0].year;
-    const lastYear = eventsPerYear[eventsPerYear.length - 1].year;
-    const bucketSize = Math.ceil((lastYear - firstYear + 1) / bucketCount);
-    const buckets = Array.from({ length: bucketCount }, () => 0);
+    const maxDeaths = Math.max(...topItems.map(item => item.deaths), 1);
+    const colors = ['#1f3b73', '#2c5aa0', '#5d7fbf', '#8faadc', '#b3c9f0'];
 
-    eventsPerYear.forEach(item => {
-        const index = Math.min(
-            bucketCount - 1,
-            Math.floor((item.year - firstYear) / bucketSize)
-        );
+    container.innerHTML = `
+        <div class="global-impact-bars">
+            ${topItems.map((item, index) => {
+                const height = Math.max(8, (item.deaths / maxDeaths) * 100);
+                return `
+                    <div class="global-impact-bar-item" title="${item.type}: ${formatCompactNumber(item.deaths)} deaths">
+                        <div class="global-impact-bar-value">${formatCompactNumber(item.deaths)}</div>
+                        <div class="global-impact-bar-track">
+                            <div
+                                class="global-impact-bar-fill"
+                                style="height:${height}%; background:${colors[index % colors.length]}">
+                            </div>
+                        </div>
+                        <div class="global-impact-bar-label">${shortenDisasterTypeLabel(item.type)}</div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
 
-        buckets[index] += item.count;
-    });
+function shortenDisasterTypeLabel(type) {
+    const labels = {
+        'Mass movement (wet)': 'Wet mass',
+        'Mass movement (dry)': 'Dry mass',
+        'Volcanic activity': 'Volcanic',
+        'Extreme temperature': 'Temp.',
+        'Glacial lake outburst flood': 'GLOF',
+        'Animal incident': 'Animal'
+    };
 
-    const maxBucket = Math.max(...buckets, 1);
-
-    container.innerHTML = buckets.map((count, index) => {
-        const height = Math.max(12, Math.round((count / maxBucket) * 90));
-        const opacity = 0.25 + (index / Math.max(1, bucketCount - 1)) * 0.75;
-
-        return `
-            <div 
-                class="global-year-bar" 
-                title="${count} events" 
-                style="height:${height}px; opacity:${opacity}">
-            </div>
-        `;
-    }).join('');
-
-    document.getElementById('global-year-start').textContent = firstYear;
-    document.getElementById('global-year-end').textContent = lastYear;
+    return labels[type] || type;
 }
 
 function renderGlobalCommonTypes(types) {
@@ -1533,13 +1637,19 @@ function invalidateFeatureCaches() {
     dominantDisasterTypeByCountry = null;
 }
 
+function getTimelineFilteredData() {
+    const lowerYear = timeLowerBound ?? getDatasetMinYear();
+    const upperYear = timeUpperBound ?? getDatasetMaxYear();
 
-function getFilteredData() {
-    let disasters = getDisastersInYearRange(
-        timeLowerBound,
-        timeUpperBound,
+    return getDisastersInYearRange(
+        lowerYear,
+        upperYear,
         getAllDisasters()
     );
+}
+
+function getFilteredData() {
+    let disasters = getTimelineFilteredData();
 
     if (hasActiveDisasterTypeFilter()) {
         disasters = disasters.filter(disaster =>
