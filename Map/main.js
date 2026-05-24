@@ -16,6 +16,8 @@ let _hoveredMapContinent = null;
 
 let globalPanelStateBeforeCountryPanel = null;
 let activeCountryPanel = null;
+let selectedDisasterTypes = new Set();
+let allDisasterTypes = [];
 
 let minTimelineYear = null;
 let maxTimelineYear = null;
@@ -228,6 +230,7 @@ map.on('load', async () => {
         return;
     }
     renderGlobalPanel();
+    setupDisasterTypeFilter();
     setupTimeline();
     //await fetchWorldGeoJSON();
 
@@ -663,6 +666,114 @@ function formatCompactNumber(value) {
 }
 
 // ─── Feature panel: dual-selection logic ───────────────────────────────────
+function setupDisasterTypeFilter() {
+    const list = document.getElementById('disaster-type-checkbox-list');
+    if (!list) return;
+
+    allDisasterTypes = getAllDisasterTypes();
+    selectedDisasterTypes = new Set(allDisasterTypes);
+
+    list.innerHTML = allDisasterTypes.map(type => `
+        <label class="disaster-type-checkbox-option">
+            <input type="checkbox" name="disaster-type" value="${type}" checked>
+            <span>${type}</span>
+        </label>
+    `).join('');
+
+    list.querySelectorAll('input[name="disaster-type"]').forEach(input => {
+        input.addEventListener('change', () => {
+            if (input.checked) {
+                selectedDisasterTypes.add(input.value);
+            } else {
+                selectedDisasterTypes.delete(input.value);
+            }
+
+            applyDisasterTypeFilterChange();
+        });
+    });
+
+    updateDisasterTypeFilterSummary();
+    handleDominantTypeWhenFiltered();
+    refreshFeatureTags();
+}
+
+function toggleDisasterTypeFilterPanel() {
+    document.getElementById('disaster-type-checkbox-panel')?.classList.toggle('hidden');
+}
+
+function selectAllDisasterTypes() {
+    document.querySelectorAll('input[name="disaster-type"]').forEach(input => {
+        input.checked = true;
+        selectedDisasterTypes.add(input.value);
+    });
+
+    applyDisasterTypeFilterChange();
+}
+
+function deselectAllDisasterTypes() {
+    document.querySelectorAll('input[name="disaster-type"]').forEach(input => {
+        input.checked = false;
+    });
+
+    selectedDisasterTypes.clear();
+    applyDisasterTypeFilterChange();
+}
+
+function applyDisasterTypeFilterChange() {
+    handleDominantTypeWhenFiltered();
+    updateDisasterTypeFilterSummary();
+    refreshFeatureTags();
+    invalidateFeatureCaches();
+    updateMap();
+    refreshOpenCountryPanel();
+}
+
+function updateDisasterTypeFilterSummary() {
+    const summary = document.getElementById('disaster-type-filter-summary');
+    if (!summary) return;
+
+    const selectedCount = selectedDisasterTypes.size;
+    const totalCount = allDisasterTypes.length;
+
+    if (selectedCount === totalCount) {
+        summary.textContent = 'All';
+    } else {
+        summary.textContent = `${selectedCount} selected`;
+    }
+}
+
+function hasActiveDisasterTypeFilter() {
+    return selectedDisasterTypes.size < allDisasterTypes.length;
+}
+
+function handleDominantTypeWhenFiltered() {
+    const dominantInput = document.querySelector('input[name="feature"][value="dominant-disaster-type"]');
+    if (!dominantInput) return;
+
+    if (!hasActiveDisasterTypeFilter()) {
+        dominantInput.disabled = false;
+        dominantInput.closest('.feature-option')?.classList.remove('disabled-by-filter');
+        return;
+    }
+
+    if (colorFeature === 'dominant-disaster-type') {
+        colorFeature = 'disaster-number';
+        dominantInput.checked = false;
+
+        const disasterNumberInput = document.querySelector('input[name="feature"][value="disaster-number"]');
+        if (disasterNumberInput) disasterNumberInput.checked = true;
+    }
+
+    if (distortFeature === 'dominant-disaster-type') {
+        distortFeature = null;
+        dominantInput.checked = false;
+    }
+}
+
+function getSelectedDisasterTypeLabel() {
+    if (!hasActiveDisasterTypeFilter()) return 'all disaster types';
+    return `${selectedDisasterTypes.size} disaster types selected`;
+}
 
 function setupFeaturePanel() {
     const featureInputs = document.querySelectorAll('input[name="feature"]');
@@ -689,6 +800,7 @@ function setupFeaturePanel() {
                 }
                 refreshFeatureTags();
                 updateMap();
+                refreshOpenCountryPanel();
                 return;
             }
 
@@ -711,6 +823,7 @@ function setupFeaturePanel() {
 
             refreshFeatureTags();
             updateMap();
+            refreshOpenCountryPanel();
         });
     });
 }
@@ -749,6 +862,11 @@ function refreshFeatureTags() {
         } else {
             if (tag) tag.remove();
         }
+
+        const disabledByTypeFilter = hasActiveDisasterTypeFilter() && input.value === 'dominant-disaster-type';
+
+        input.disabled = disabledByTypeFilter;
+        label.classList.toggle('disabled-by-filter', disabledByTypeFilter);
 
         // visual dimming for non-distortable options
         if (
@@ -1069,7 +1187,7 @@ function openPanelFromCartogram(feature) {
 function refreshOpenCountryPanel() {
     const panel = document.getElementById('panel');
 
-    if (!activeCountryPanel || panel.classList.contains('hidden')) {
+    if (!panel || panel.classList.contains('hidden') || !activeCountryPanel) {
         return;
     }
 
@@ -1085,7 +1203,18 @@ function renderCountryPanelContent(iso3, fallbackName, disasters) {
     const summary = getCountrySummary(iso3, disasters);
 
     if (!summary) {
-        container.innerHTML = '<div class="worst-by-country-section-title">No recorded data</div>';
+        container.innerHTML = `
+            <div class="country-panel-subtitle">
+                ${getSelectedDisasterTypeLabel()}
+            </div>
+
+            <section class="country-overview-card">
+                <div class="country-section-title">No recorded data</div>
+                <div class="country-empty-chart">
+                    No disasters match the selected year range and disaster type filters for this country.
+                </div>
+            </section>
+        `;
         return;
     }
 
@@ -1097,7 +1226,9 @@ function renderCountryPanelContent(iso3, fallbackName, disasters) {
     const regionText = [summary.region, summary.subregion].filter(Boolean).join(' | ');
 
     container.innerHTML = `
-        <div class="country-panel-subtitle">${regionText || 'Region unavailable'}</div>
+        <div class="country-panel-subtitle">
+            ${regionText || 'Region unavailable'} · ${getSelectedDisasterTypeLabel()}
+        </div>
 
         <section class="country-overview-card">
             <div class="country-section-title">Overview</div>
@@ -1289,11 +1420,20 @@ function invalidateFeatureCaches() {
 
 
 function getFilteredData() {
-    return getDisastersInYearRange(timeLowerBound, timeUpperBound, getAllDisasters());
+    let disasters = getDisastersInYearRange(
+        timeLowerBound,
+        timeUpperBound,
+        getAllDisasters()
+    );
+
+    if (hasActiveDisasterTypeFilter()) {
+        disasters = disasters.filter(disaster =>
+            selectedDisasterTypes.has(getDisasterType(disaster))
+        );
+    }
+
+    return disasters;
 }
-
-
-
 
 
 
@@ -1470,6 +1610,9 @@ function updateLegend(featureData, distortData) {
     const stops = createHeatmapStops(featureData);
     const formatValue = featureData.legendFormatter || formatLegendNumber;
     legendTitle.innerText = featureData.legendTitle || 'Heatmap';
+    if (hasActiveDisasterTypeFilter()) {
+        legendTitle.innerText += ` · ${getSelectedDisasterTypeLabel()}`;
+    }
 
     const legendRows = [{ color: featureData.colors[0], label: featureData.legendNoDataLabel || 'No data' }];
     stops.forEach((stop, i) => {
@@ -1495,6 +1638,10 @@ function updateCategoricalLegend(featureData, legend, legendTitle, legendItems) 
         .sort((a, b) => getDisasterTypeOrder(a) - getDisasterTypeOrder(b));
 
     legendTitle.innerText = featureData.legendTitle || 'Categories';
+
+    if (hasActiveDisasterTypeFilter()) {
+        legendTitle.innerText += ` · ${getSelectedDisasterTypeLabel()}`;
+    }
 
     const legendRows = presentTypes.length
         ? presentTypes.map(t => ({ color: featureData.colorsByValue[t] || '#9e9e9e', label: t }))

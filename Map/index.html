@@ -62,6 +62,22 @@
             </label>
 
         </div>
+
+        <div class="disaster-type-filter">
+            <button id="disaster-type-toggle" class="disaster-type-toggle" type="button" onclick="toggleDisasterTypeFilterPanel()">
+                <span>Filter by disaster type</span>
+                <strong id="disaster-type-filter-summary">All</strong>
+            </button>
+
+            <div id="disaster-type-checkbox-panel" class="disaster-type-checkbox-panel hidden">
+                <div class="disaster-type-actions">
+                    <button type="button" onclick="selectAllDisasterTypes()">Select all</button>
+                    <button type="button" onclick="deselectAllDisasterTypes()">Deselect all</button>
+                </div>
+
+                <div id="disaster-type-checkbox-list" class="disaster-type-checkbox-list"></div>
+            </div>
+        </div>
     </aside>
 
     <div id="controls">

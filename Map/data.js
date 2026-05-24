@@ -37,6 +37,14 @@ function getAllDisasters() {
     return DATA;
 }
 
+function getAllDisasterTypes(disasters = DATA) {
+    return [...new Set(
+        disasters
+            .map(getDisasterType)
+            .filter(type => type !== null && type !== undefined && type !== '')
+    )].sort();
+}
+
 function getGlobalSummary() {
     return GLOBAL_SUMMARY;
 }
