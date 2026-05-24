@@ -152,6 +152,9 @@ function setupTimeline() {
 
     const lower = document.getElementById('timeline-lower');
     const upper = document.getElementById('timeline-upper');
+    const rangeLabel = document.getElementById('timeline-range-label');
+    const yearEditor = document.getElementById('timeline-year-editor');
+    const yearInput = document.getElementById('timeline-year-input');
 
     lower.min = minTimelineYear;
     lower.max = maxTimelineYear;
@@ -167,6 +170,7 @@ function setupTimeline() {
     function refreshTimelineLabel() {
         document.getElementById('timeline-range-label').innerText =
             `${timeLowerBound} - ${timeUpperBound}`;
+        renderTimelineHistogram();
     }
 
     lower.addEventListener('input', () => {
@@ -202,6 +206,72 @@ function setupTimeline() {
     });
 
     refreshTimelineLabel();
+
+    rangeLabel.addEventListener('click', () => {
+        yearInput.value = timeLowerBound === timeUpperBound ? timeLowerBound : '';
+        yearInput.placeholder = `2025`;
+
+        rangeLabel.classList.add('hidden');
+        yearEditor.classList.remove('hidden');
+
+        yearInput.focus();
+        yearInput.select();
+    });
+
+    yearInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            applyTimelineInputYear();
+        }
+
+        if (event.key === 'Escape') {
+            yearEditor.classList.add('hidden');
+            rangeLabel.classList.remove('hidden');
+        }
+    });
+
+    document.addEventListener('mousedown', event => {
+        const clickedEditor = yearEditor.contains(event.target);
+        const clickedLabel = rangeLabel.contains(event.target);
+
+        if (!clickedEditor && !clickedLabel && !yearEditor.classList.contains('hidden')) {
+            yearEditor.classList.add('hidden');
+            rangeLabel.classList.remove('hidden');
+        }
+    });
+}
+
+
+function applyTimelineInputYear() {
+    const rangeLabel = document.getElementById('timeline-range-label');
+    const yearEditor = document.getElementById('timeline-year-editor');
+    const yearInput = document.getElementById('timeline-year-input');
+    const lower = document.getElementById('timeline-lower');
+    const upper = document.getElementById('timeline-upper');
+
+    let selectedYear = Number(yearInput.value);
+
+    if (!Number.isFinite(selectedYear)) {
+        return;
+    }
+
+    selectedYear = Math.round(selectedYear);
+    selectedYear = Math.max(minTimelineYear, Math.min(selectedYear, maxTimelineYear));
+
+    timeLowerBound = selectedYear;
+    timeUpperBound = selectedYear;
+
+    lower.value = selectedYear;
+    upper.value = selectedYear;
+
+    rangeLabel.innerText = `${selectedYear}`;
+
+    renderTimelineHistogram();
+    invalidateFeatureCaches();
+    updateMap();
+    refreshOpenCountryPanel();
+
+    yearEditor.classList.add('hidden');
+    rangeLabel.classList.remove('hidden');
 }
 
 
@@ -724,8 +794,53 @@ function applyDisasterTypeFilterChange() {
     updateDisasterTypeFilterSummary();
     refreshFeatureTags();
     invalidateFeatureCaches();
+    renderTimelineHistogram();
     updateMap();
     refreshOpenCountryPanel();
+}
+
+
+function renderTimelineHistogram() {
+    const container = document.getElementById('timeline-histogram');
+    if (!container || minTimelineYear === null || maxTimelineYear === null) return;
+
+    const countsByYear = getTimelineCountsByYear();
+    const maxCount = Math.max(...Object.values(countsByYear), 1);
+
+    const bars = [];
+
+    for (let year = minTimelineYear; year <= maxTimelineYear; year++) {
+        const count = countsByYear[year] || 0;
+        const height = count === 0 ? 2 : Math.max(4, Math.round((count / maxCount) * 28));
+        const inRange = year >= timeLowerBound && year <= timeUpperBound;
+
+        bars.push(`
+            <div
+                class="timeline-histogram-bar ${inRange ? 'in-range' : ''}"
+                style="height:${height}px"
+                title="${year}: ${count} events">
+            </div>
+        `);
+    }
+
+    container.innerHTML = bars.join('');
+}
+
+function getTimelineCountsByYear() {
+    const counts = {};
+
+    getAllDisasters().forEach(disaster => {
+        if (hasActiveDisasterTypeFilter() && !selectedDisasterTypes.has(getDisasterType(disaster))) {
+            return;
+        }
+
+        const year = Number(getDisasterStartYear(disaster));
+        if (!Number.isFinite(year)) return;
+
+        counts[year] = (counts[year] || 0) + 1;
+    });
+
+    return counts;
 }
 
 function updateDisasterTypeFilterSummary() {

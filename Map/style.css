@@ -1077,11 +1077,11 @@ body {
 
     bottom: 14px;
 
-    width: min(720px, 58vw);
+    width: min(700px, 58vw);
 
     z-index: 5;
 
-    padding: 9px 14px;
+    padding: 8px 14px 10px;
 
     border-radius: 12px;
 
@@ -1101,31 +1101,112 @@ body {
 
     margin-bottom: 6px;
 
-    font-size: 11px;
+    font-size: 12px;
     color: #444;
 }
 
 #timeline-range-label {
     font-weight: 700;
     color: #1f3b73;
+    cursor: pointer;
+}
+
+#timeline-range-label:hover {
+    text-decoration: underline;
+}
+
+.timeline-year-editor {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.timeline-year-editor.hidden {
+    display: none;
+}
+
+.timeline-year-editor input {
+    width: 68px;
+    padding: 3px 5px;
+
+    border: 1px solid #b3c9f0;
+    border-radius: 6px;
+
+    font-size: 11px;
+    font-weight: 700;
+    color: #1f3b73;
+    text-align: center;
+}
+
+.timeline-year-editor input::placeholder {
+    color: #1f3b73;
+    opacity: 0.35;
+}
+
+.timeline-year-editor button {
+    padding: 3px 7px;
+
+    border: none;
+    border-radius: 6px;
+
+    background: #1f3b73;
+    color: white;
+
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.timeline-year-editor button:hover {
+    background: #2c5aa0;
+}
+
+.timeline-histogram {
+    height: 34px;
+
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+
+    padding: 0 4px;
+    margin-bottom: 0;
+
+    border-bottom: 2px solid #222;
+}
+
+.timeline-histogram-bar {
+    flex: 1;
+    min-width: 2px;
+
+    border-radius: 2px 2px 0 0;
+    background: #d9d9d9;
+
+    opacity: 0.8;
+}
+
+.timeline-histogram-bar.in-range {
+    background: #1f3b73;
+    opacity: 0.95;
 }
 
 .timeline-sliders {
     position: relative;
-    height: 24px;
+    height: 34px;
+    margin-top: -34px;
 }
 
 .timeline-sliders input[type="range"] {
     position: absolute;
 
     width: 100%;
+    height: 34px;
     left: 0;
     top: 0;
 
     pointer-events: none;
 
     appearance: none;
-    background: none;
+    background: transparent;
 }
 
 .timeline-sliders input[type="range"]::-webkit-slider-thumb {
@@ -1133,24 +1214,23 @@ body {
 
     appearance: none;
 
-    width: 15px;
-    height: 15px;
+    width: 7px;
+    height: 34px;
 
-    border-radius: 50%;
+    border-radius: 999px;
 
     background: #1f3b73;
 
-    cursor: pointer;
+    cursor: ew-resize;
 
-    border: 2px solid white;
-
-    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    border: none;
+    box-shadow: none;
 }
 
 .timeline-sliders input[type="range"]::-webkit-slider-runnable-track {
-    height: 4px;
-    background: #d0d0d0;
-    border-radius: 999px;
+    height: 34px;
+    background: transparent;
+    border: none;
 }
 
 #map {
