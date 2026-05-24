@@ -140,9 +140,112 @@ function getDeadliestDisastersByCountry(disasters = DATA) {
     return Object.values(byCountry);
 }
 
+
 function getDeadliestDisasterForCountry(iso3, disasters = DATA) {
     return getDeadliestDisastersByCountry(disasters)
         .find(disaster => getDisasterISO(disaster) === iso3) || null;
+}
+
+function getCountryDisasters(iso3, disasters = DATA) {
+    return disasters.filter(disaster => getDisasterISO(disaster) === iso3);
+}
+
+function sumKnownValues(disasters, valueGetter) {
+    return disasters.reduce((total, disaster) => {
+        const value = valueGetter(disaster);
+        const numberValue = Number(value);
+
+        if (value === null || value === undefined || !Number.isFinite(numberValue)) {
+            return total;
+        }
+
+        return total + numberValue;
+    }, 0);
+}
+
+function getTopDisasterByMetric(iso3, metricGetter, disasters = DATA) {
+    const countryDisasters = getCountryDisasters(iso3, disasters);
+    let topDisaster = null;
+    let topValue = -Infinity;
+
+    countryDisasters.forEach(disaster => {
+        const value = metricGetter(disaster);
+        const numberValue = Number(value);
+
+        if (value === null || value === undefined || !Number.isFinite(numberValue) || numberValue <= 0) {
+            return;
+        }
+
+        if (numberValue > topValue) {
+            topValue = numberValue;
+            topDisaster = disaster;
+        }
+    });
+
+    return topDisaster;
+}
+
+function getCostliestDisasterForCountry(iso3, disasters = DATA) {
+    return getTopDisasterByMetric(iso3, getDisasterDamage, disasters);
+}
+
+function getCountrySummary(iso3, disasters = DATA) {
+    const countryDisasters = getCountryDisasters(iso3, disasters);
+    if (!countryDisasters.length) return null;
+
+    const first = countryDisasters[0];
+    const years = countryDisasters
+        .map(getDisasterStartYear)
+        .map(Number)
+        .filter(Number.isFinite);
+
+    const firstYear = Math.min(...years);
+    const lastYear = Math.max(...years);
+    const yearSpan = Math.max(1, lastYear - firstYear + 1);
+
+    return {
+        iso3,
+        country: getDisasterCountry(first),
+        region: getDisasterRegion(first),
+        subregion: getDisasterSubregion(first),
+        total_disasters: countryDisasters.length,
+        total_deaths: sumKnownValues(countryDisasters, getDisasterDeaths),
+        total_affected: sumKnownValues(countryDisasters, getDisasterAffected),
+        total_damage_usd_000: sumKnownValues(countryDisasters, getDisasterDamage),
+        first_year: firstYear,
+        last_year: lastYear,
+        avg_disasters_per_year: countryDisasters.length / yearSpan,
+        deadliest_disaster: getDeadliestDisasterForCountry(iso3, disasters),
+        costliest_disaster: getCostliestDisasterForCountry(iso3, disasters)
+    };
+}
+
+function getCountryYearlySeries(iso3, disasters = DATA) {
+    const byYear = {};
+
+    getCountryDisasters(iso3, disasters).forEach(disaster => {
+        const year = Number(getDisasterStartYear(disaster));
+        if (!Number.isFinite(year)) return;
+
+        byYear[year] = (byYear[year] || 0) + 1;
+    });
+
+    return Object.entries(byYear)
+        .map(([year, count]) => ({ year: Number(year), count }))
+        .sort((a, b) => a.year - b.year);
+}
+
+function getCountryDisasterTypes(iso3, disasters = DATA) {
+    const counts = {};
+
+    getCountryDisasters(iso3, disasters).forEach(disaster => {
+        const type = getDisasterType(disaster) || 'Unknown';
+        counts[type] = (counts[type] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+        .map(([type, count]) => ({ type, count }))
+        .sort((a, b) => b.count - a.count);
 }
 
 function getCountryDisasterCountsFromJSON(disasters = DATA) {
