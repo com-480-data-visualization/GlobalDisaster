@@ -1192,108 +1192,6 @@ function geometryCentroid(geometry) {
     return ringCentroid(allPoints);
 }
 
-// Scale a single ring around a centroid by factor
-function scaleRing(ring, cx, cy, factor) {
-    return ring.map(([lng, lat]) => [
-        cx + (lng - cx) * factor,
-        cy + (lat - cy) * factor
-    ]);
-}
-
-// Scale all rings of a geometry
-function scaleGeometry(geometry, cx, cy, factor) {
-    factor *= 0.92;
-    if (geometry.type === 'Polygon') {
-        return {
-            type: 'Polygon',
-            coordinates: geometry.coordinates.map(ring => scaleRing(ring, cx, cy, factor))
-        };
-    } else if (geometry.type === 'MultiPolygon') {
-        return {
-            type: 'MultiPolygon',
-            coordinates: geometry.coordinates.map(poly =>
-                poly.map(ring => scaleRing(ring, cx, cy, factor))
-            )
-        };
-    }
-    return geometry;
-}
-
-// Build a distorted GeoJSON FeatureCollection
-function buildCartogramGeoJSON(distortData, colorData) {
-    if (!worldGeoJSON) return { type: 'FeatureCollection', features: [] };
-
-    const distortValues = distortData.values;
-    const numericValues = Object.values(distortValues).filter(v => v > 0);
-    if (numericValues.length === 0) return { type: 'FeatureCollection', features: [] };
-
-    const maxVal = Math.max(...numericValues);
-    const minVal = Math.min(...numericValues);
-    const logMin = Math.log10(minVal);
-    const logMax = Math.log10(maxVal);
-
-    // Scale factor range: 0.15 (no data / zero) to 2.2 (max)
-    const MIN_SCALE = 0.15;
-    const MAX_SCALE = 1;
-
-    // For color lookup (may be categorical or numeric)
-    const colorExpression = colorData
-        ? precomputeCountryColors(colorData)
-        : null;
-
-    const features = [];
-
-    for (const feature of worldGeoJSON.features) {
-        const props = feature.properties;
-
-        const iso3 = [
-            props.ISO_A3,
-            props.ADM0_A3,
-            props.ISO_A3_EH,
-            props.iso_a3,
-        ].find(v => v && v !== '-99' && v.length === 3) || '';
-
-        if (iso3 === 'ATA') continue;
-        const value = distortValues[iso3];
-
-        let scaleFactor = MIN_SCALE;
-        
-        if (value > 0) {
-            const logVal = Math.log10(value);
-            const t = logMax === logMin
-                ? 1
-                : (logVal - logMin) / (logMax - logMin);
-            scaleFactor = MIN_SCALE + t * (MAX_SCALE - MIN_SCALE);
-        }
-
-        const centroid = geometryCentroid(feature.geometry);
-        const scaled = turf.transformScale(
-            feature,
-            scaleFactor,
-            {
-                mutate: false,
-                origin: [centroid[0], centroid[1]] 
-            }
-        );
-
-        const color = colorExpression ? colorExpression[iso3] || '#e0e0e0' : '#9bd4d0';
-
-        features.push({
-            type: 'Feature',
-            id: iso3,
-            geometry: scaled.geometry,
-            properties: {
-                ...props,
-                _iso3: iso3,
-                _scaleFactor: scaleFactor,
-                _color: color
-            }
-        });
-    }
-
-    return { type: 'FeatureCollection', features };
-}
-
 // Precompute a {iso3 -> color} map from featureData (works for both numeric and categorical)
 function precomputeCountryColors(featureData) {
     const result = {};
@@ -1703,12 +1601,6 @@ function getFilteredData() {
 }
 
 
-
-
-function isNaturalDisaster(disaster) {
-    return true;
-}
-
 function getNumericValue(disaster, columns) {
     for (const column of columns) {
         let value = null;
@@ -1922,4 +1814,61 @@ function updateCategoricalLegend(featureData, legend, legendTitle, legendItems) 
     `).join('');
 
     legend.classList.remove('hidden');
+}
+
+function resetMap() {
+    // Reset feature selections
+    colorFeature = null;
+    distortFeature = null;
+    document.querySelectorAll('input[name="feature"]').forEach(input => {
+        input.checked = false;
+    });
+
+    // Reset disaster type filter
+    selectedDisasterTypes = new Set(allDisasterTypes);
+    document.querySelectorAll('input[name="disaster-type"]').forEach(input => {
+        input.checked = true;
+    });
+    updateDisasterTypeFilterSummary();
+
+    // Reset timeline
+    timeLowerBound = minTimelineYear;
+    timeUpperBound = maxTimelineYear;
+    const lower = document.getElementById('timeline-lower');
+    const upper = document.getElementById('timeline-upper');
+    if (lower) { lower.value = minTimelineYear; }
+    if (upper) { upper.value = maxTimelineYear; }
+    document.getElementById('timeline-range-label').innerText = `${minTimelineYear} - ${maxTimelineYear}`;
+
+    // Reset globe/country modes
+    globeActive = false;
+    countryActive = false;
+    document.getElementById('btn-globe').classList.remove('active');
+    document.getElementById('btn-country').classList.remove('active');
+
+    // Close any open panels
+    closePanel();
+    ContinentPanel.close();
+
+    // Fly to Switzerland
+    map.flyTo({ center: [8.2, 46.8], zoom: 4, duration: 1800 });
+
+    // Refresh everything
+    invalidateFeatureCaches();
+    renderTimelineHistogram();
+    renderGlobalPanel();
+    refreshFeatureTags();
+    BubbleOverlay.hide();
+    updateMap();
+}
+
+function openAbout() {
+    document.getElementById('about-overlay').classList.remove('hidden');
+}
+
+function closeAbout(event) {
+    // Close if clicking the backdrop or the close button directly
+    if (!event || event.target === document.getElementById('about-overlay') || event.currentTarget.classList.contains('about-close')) {
+        document.getElementById('about-overlay').classList.add('hidden');
+    }
 }

@@ -7,7 +7,7 @@
     <!-- Mapbox -->
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -83,6 +83,62 @@
     <div id="controls">
         <button id="btn-globe" onclick="toggleGlobe()">Disasters on Globe</button>
         <button id="btn-country" onclick="toggleCountry()">Disasters in Countries</button>
+        <button id="btn-home" onclick="resetMap()" title="Reset map" aria-label="Reset map">
+            <i class="ti ti-home" aria-hidden="true"></i>
+        </button>
+        <button id="btn-about" onclick="openAbout()" title="About" aria-label="About">
+            <i class="ti ti-question-mark" aria-hidden="true"></i>
+        </button>
+    </div>
+
+        <!-- About overlay -->
+    <div id="about-overlay" class="about-overlay hidden" onclick="closeAbout(event)">
+        <div class="about-modal">
+            <button class="about-close" onclick="closeAbout()">✕</button>
+            <h2>Global Natural Disasters</h2>
+            <p class="about-source">Data source: EM-DAT International Disaster Database</p>
+
+            <div class="about-section">
+                <h3>Getting started</h3>
+                <p>Use the two buttons at the top left to activate the visualization modes:</p>
+                <ul>
+                    <li><strong>Disasters on Globe</strong> — activates the map visualization with country coloring.</li>
+                    <li><strong>Disasters in Countries</strong> — enables clicking on countries to see detailed statistics.</li>
+                </ul>
+            </div>
+
+            <div class="about-section">
+                <h3>Choosing what to display</h3>
+                <p>The panel on the left lets you select up to two features at once:</p>
+                <ul>
+                    <li>The <span class="about-tag color">color</span> tag shows which feature drives the country color (choropleth).</li>
+                    <li>The <span class="about-tag shape">shape</span> tag shows which feature drives bubble size — activating a second numeric feature switches to bubble map mode.</li>
+                </ul>
+            </div>
+
+            <div class="about-section">
+                <h3>Bubble map mode</h3>
+                <p>When two numeric features are selected, proportional bubbles appear over each country. You can:</p>
+                <ul>
+                    <li>Hover a bubble to highlight it and see its value.</li>
+                    <li>Click a bubble to open the country detail panel (requires <em>Disasters in Countries</em> to be active).</li>
+                    <li>Click on a continent background (between bubbles) to open the continent bubble panel.</li>
+                </ul>
+            </div>
+
+            <div class="about-section">
+                <h3>Filtering data</h3>
+                <ul>
+                    <li>Use the <strong>timeline slider</strong> at the bottom to filter by year range. Click the year label to jump to a specific year.</li>
+                    <li>Use <strong>Filter by disaster type</strong> in the left panel to include only certain disaster categories.</li>
+                </ul>
+            </div>
+
+            <div class="about-section">
+                <h3>Continent panel</h3>
+                <p>Clicking a continent background opens a side panel showing all countries in that continent as proportional bubbles. Hover any bubble to see the country's value.</p>
+            </div>
+        </div>
     </div>
 
     <aside id="heatmap-legend" class="heatmap-legend hidden" aria-label="Heatmap legend">
