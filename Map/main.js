@@ -13,6 +13,7 @@ let dominantDisasterTypeByCountry = null;
 let selectedId = null;
 let selectedFeature = null;
 let _hoveredMapContinent = null; 
+let _hoveredBubbleIso = null;
 
 let globalPanelStateBeforeCountryPanel = null;
 let activeCountryPanel = null;
@@ -379,8 +380,32 @@ map.on('load', async () => {
 // ─────────────────────────────────────────────────────────────
 
 map.on('mousemove', 'countries', (e) => {
-    // Continent hover in bubble mode
     if (globeActive && distortFeature) {
+        // If hovering over a bubble, let bubble handler take over
+        const bubblesUnder = map.queryRenderedFeatures(e.point, { layers: ['bubble-layer'] });
+        if (bubblesUnder.length > 0) {
+            const hoveredIso = bubblesUnder[0].properties._iso3;;
+            if (hoveredIso !== _hoveredBubbleIso) {
+                if (_hoveredBubbleIso) {
+                    map.setFeatureState({ source: 'bubble-source', id: _hoveredBubbleIso }, { hover: false });
+                }
+                _hoveredBubbleIso = hoveredIso;
+                map.setFeatureState({ source: 'bubble-source', id: _hoveredBubbleIso }, { hover: true });
+            }
+            // clear continent hover
+            if (_hoveredMapContinent) {
+                ContinentPanel.setHover(_hoveredMapContinent, false);
+                _hoveredMapContinent = null;
+            }
+            map.getCanvas().style.cursor = 'pointer';
+            return;
+        }
+        // clear bubble hover when back over continent
+        if (_hoveredBubbleIso) {
+            map.setFeatureState({ source: 'bubble-source', id: _hoveredBubbleIso }, { hover: false });
+            _hoveredBubbleIso = null;
+        }
+        // Over continent background, not a bubble
         const iso3 = e.features[0].properties.iso_3166_1_alpha_3;
         const continent = ContinentPanel.CONTINENT_BY_ISO3[iso3];
         if (continent && continent !== _hoveredMapContinent) {
@@ -408,6 +433,10 @@ map.on('mousemove', 'countries', (e) => {
 });
 
 map.on('mouseleave', 'countries', () => {
+    if (_hoveredBubbleIso) {
+        map.setFeatureState({ source: 'bubble-source', id: _hoveredBubbleIso }, { hover: false });
+        _hoveredBubbleIso = null;
+    }
     if (_hoveredMapContinent) {
         ContinentPanel.setHover(_hoveredMapContinent, false);
         _hoveredMapContinent = null;
@@ -423,8 +452,21 @@ map.on('mouseleave', 'countries', () => {
 });
 
 map.on('click', 'countries', (e) => {
-    // Continent click in bubble mode
     if (globeActive && distortFeature) {
+        // Check if a bubble is under the click — if so, open country panel
+        const bubblesUnder = map.queryRenderedFeatures(e.point, { layers: ['bubble-layer'] });
+        if (bubblesUnder.length > 0) {
+            if (!countryActive) return;
+            ContinentPanel.close();
+            const props = bubblesUnder[0].properties;
+            openPanel({
+                iso_3166_1: props._iso2,
+                iso_3166_1_alpha_3: props._iso3,
+                name_en: props._name
+            }, null);
+            return;
+        }
+        // No bubble under click — open continent panel
         const iso3 = e.features[0].properties.iso_3166_1_alpha_3;
         const continent = ContinentPanel.CONTINENT_BY_ISO3[iso3];
         if (continent) ContinentPanel.open(continent);

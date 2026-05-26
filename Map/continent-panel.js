@@ -93,6 +93,10 @@
         },
 
         open: function (continentName) {
+            const countryPanel = document.getElementById('panel');
+            if (countryPanel && !countryPanel.classList.contains('hidden')) {
+                closePanel(); // calls the global closePanel from main.js
+            }
             _currentContinent = continentName;
             _open = true;
             document.getElementById('continent-panel').classList.add('open');
@@ -249,6 +253,7 @@
         // Click on continent fill (background area, not on a bubble)
         map.on('click', CONTINENT_FILL, (e) => {
             if (!window.globeActive) return;
+            if (e.originalEvent._bubbleClicked) return;
             const continent = e.features[0].properties.continent;
             if (continent) ContinentPanel.open(continent);
         });

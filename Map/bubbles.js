@@ -8,6 +8,7 @@
 
     let _map = null;
     let _hoveredContinent = null;
+    let _lastHoveredIso = null;
 
     // continent → ISO3[] built when show() is called
     let _continentIndex = {};
@@ -19,7 +20,8 @@
 
             _map.addSource(SOURCE_ID, {
                 type: 'geojson',
-                data: emptyFC()
+                data: emptyFC(),
+                promoteId: '_iso3'   
             });
 
             // Base fill layer
@@ -30,11 +32,13 @@
                 paint: {
                     'circle-radius':         ['get', '_radius'],
                     'circle-color':          ['get', '_color'],
-                    'circle-opacity':        ['case',
+                    'circle-opacity': ['case',
+                        ['boolean', ['feature-state', 'hover'], false], 1.0,
                         ['boolean', ['feature-state', 'continentHover'], false], 0.95,
                         0.75
                     ],
-                    'circle-stroke-width':   ['case',
+                    'circle-stroke-width': ['case',
+                        ['boolean', ['feature-state', 'hover'], false], 3,
                         ['boolean', ['feature-state', 'continentHover'], false], 2.5,
                         1.5
                     ],
@@ -42,44 +46,38 @@
                     'circle-stroke-opacity': 0.9
                 }
             });
-
+            
             _map.on('mouseenter', LAYER_ID, (e) => {
                 _map.getCanvas().style.cursor = 'pointer';
-                const continent = e.features[0].properties._continent;
-                if (continent && continent !== _hoveredContinent) {
-                    if (_hoveredContinent && window.ContinentPanel) 
-                        ContinentPanel.setHover(_hoveredContinent, false);
-                    _hoveredContinent = continent;
-                    if (window.ContinentPanel) 
-                        ContinentPanel.setHover(_hoveredContinent, true);
+                const iso = e.features[0].properties._iso3;  
+                if (iso) {
+                    _map.setFeatureState({ source: SOURCE_ID, id: iso }, { hover: true });
+                    _lastHoveredIso = iso;
+                }
+            });
+            
+            _map.on('mouseleave', LAYER_ID, (e) => {
+                _map.getCanvas().style.cursor = '';
+                if (_lastHoveredIso) {
+                    _map.setFeatureState({ source: SOURCE_ID, id: _lastHoveredIso }, { hover: false });
+                    _lastHoveredIso = null;
                 }
             });
             
             _map.on('mousemove', LAYER_ID, (e) => {
-                const continent = e.features[0].properties._continent;
-                if (continent && continent !== _hoveredContinent) {
-                    if (_hoveredContinent && window.ContinentPanel) 
-                        ContinentPanel.setHover(_hoveredContinent, false);
-                    _hoveredContinent = continent;
-                    if (window.ContinentPanel) 
-                        ContinentPanel.setHover(_hoveredContinent, true);
+                console.log('bubble mousemove fired', e.features[0]);
+                console.log('feature id:', e.features[0].id);
+                console.log('feature properties._iso3:', e.features[0].properties._iso3);
+                const iso = e.features[0].properties._iso3;;
+                if (iso !== _lastHoveredIso) {
+                    if (_lastHoveredIso) {
+                        _map.setFeatureState({ source: SOURCE_ID, id: _lastHoveredIso }, { hover: false });
+                    }
+                    _lastHoveredIso = iso;
+                    _map.setFeatureState({ source: SOURCE_ID, id: iso }, { hover: true });
                 }
             });
             
-            _map.on('mouseleave', LAYER_ID, () => {
-                _map.getCanvas().style.cursor = '';
-                if (_hoveredContinent && window.ContinentPanel) 
-                    ContinentPanel.setHover(_hoveredContinent, false);
-                _hoveredContinent = null;
-            });
-            
-            _map.on('click', LAYER_ID, (e) => {
-                if (!window.globeActive) return;
-                const continent = e.features[0].properties._continent;
-                if (continent && window.ContinentPanel) {
-                    ContinentPanel.open(continent);
-                }
-            });
         },
 
         show: function (geoJSON, distortValues, colorMap, continentByISO) {
@@ -129,7 +127,6 @@
 
                 features.push({
                     type: 'Feature',
-                    id: iso3,          // needed for setFeatureState
                     geometry: { type: 'Point', coordinates: centroid },
                     properties: {
                         _iso3:        iso3,
