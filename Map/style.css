@@ -8,6 +8,26 @@ body {
     height: 100vh;
 }
 
+.map-intro-fade {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+
+    background: #ffffff;
+    opacity: 1;
+    pointer-events: none;
+
+    transition: opacity 1.15s ease;
+}
+
+.map-intro-fade.fade-out {
+    opacity: 0;
+}
+
+.map-intro-fade.hidden {
+    display: none;
+}
+
 /* =========================
    DATA MISSING OVERLAY
 ========================= */
@@ -215,6 +235,10 @@ body {
     background: #2c5aa0;
 }
 
+.disaster-type-toggle.open {
+    background: #2c5aa0;
+}
+
 .disaster-type-toggle strong {
     max-width: 96px;
     overflow: hidden;
@@ -237,6 +261,32 @@ body {
     border-radius: 10px;
     border: 1px solid #d8d8d8;
     background: white;
+
+    max-height: 390px;
+    overflow: hidden;
+    opacity: 1;
+    transform: translateY(0);
+
+    transition:
+        max-height 0.24s ease,
+        opacity 0.18s ease,
+        transform 0.24s ease,
+        padding 0.24s ease,
+        margin-top 0.24s ease,
+        border-width 0.24s ease;
+}
+
+.disaster-type-checkbox-panel.hidden {
+    display: block;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+
+    margin-top: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
 }
 
 .disaster-type-actions {
@@ -967,6 +1017,9 @@ body {
 
     display: flex;
     flex-direction: column;
+
+    opacity: 1;
+    transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
 .panel-header {
@@ -1034,6 +1087,14 @@ body {
 
 .hidden {
     display: none;
+}
+
+.panel.hidden {
+    display: flex;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(calc(-50% + 28px));
 }
 
 /* =========================
@@ -1415,13 +1476,6 @@ body {
     border: none;
 }
 
-#map {
-    transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-}
- 
-#map.map-narrowed {
-    width: 58vw !important;
-}
  
 /* Continent panel */
 #continent-panel {

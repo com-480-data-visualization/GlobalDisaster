@@ -288,9 +288,84 @@ function applyTimelineInputYear() {
 const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/light-v11',
-    center: [5, 25],
-    zoom: 1.75
+    center: [-65, 35],
+    zoom: 1.25,
+    bearing: -32,
+    pitch: 0
 });
+
+const EUROPE_INTRO_VIEW = {
+    center: [12, 50],
+    zoom: 2.35,
+    bearing: 0,
+    pitch: 0
+};
+
+const COUNTRY_FOCUS_OVERRIDES = {
+    RUS: {
+        center: [82, 58],
+        zoom: 2.25
+    },
+
+    FRA: {
+        center: [2.5, 46.5],
+        zoom: 4.25
+    },
+
+    NOR: {
+        center: [10, 64.5],
+        zoom: 4
+    },
+
+    USA: {
+        center: [-98, 39],
+        zoom: 3.05
+    }
+};
+
+const CONTINENT_FOCUS_VIEWS = {
+    Africa: {
+        center: [20, 2],
+        zoom: 2.35
+    },
+
+    Europe: {
+        center: [12, 50],
+        zoom: 2.45
+    },
+
+    Asia: {
+        center: [85, 35],
+        zoom: 2.15
+    },
+
+    Americas: {
+        center: [-80, 15],
+        zoom: 1.85
+    },
+
+    'North America': {
+        center: [-98, 45],
+        zoom: 2.25
+    },
+
+    'Central America': {
+        center: [-88, 16],
+        zoom: 3.3
+    },
+
+    'South America': {
+        center: [-62, -18],
+        zoom: 2.35
+    },
+
+    Oceania: {
+        center: [135, -25],
+        zoom: 2.45
+    }
+};
+
+let openingAnimationPlayed = false;
 
 
 map.on('load', async () => {
@@ -463,7 +538,7 @@ map.on('click', 'countries', (e) => {
                 iso_3166_1: props._iso2,
                 iso_3166_1_alpha_3: props._iso3,
                 name_en: props._name
-            }, null);
+            }, null, e.lngLat);
             return;
         }
         // No bubble under click — open continent panel
@@ -485,7 +560,7 @@ map.on('click', 'countries', (e) => {
         { selected: true }
     );
     clearHover();
-    openPanel(e.features[0].properties, e.features[0].geometry);
+    openPanel(e.features[0].properties, e.features[0].geometry, e.lngLat);
 });
 
 
@@ -599,9 +674,35 @@ ContinentPanel.init(map);
 
 updateMap();
 await fetchWorldGeoJSON();
+startMapIntro();
 
 });
 
+function startMapIntro() {
+    const fadeOverlay = document.getElementById('map-intro-fade');
+
+    requestAnimationFrame(() => {
+        fadeOverlay?.classList.add('fade-out');
+        playOpeningEuropeAnimation();
+    });
+
+    window.setTimeout(() => {
+        fadeOverlay?.classList.add('hidden');
+    }, 1250);
+}
+
+function playOpeningEuropeAnimation() {
+    if (openingAnimationPlayed) return;
+    openingAnimationPlayed = true;
+
+    map.flyTo({
+        ...EUROPE_INTRO_VIEW,
+        duration: 2300,
+        speed: 0.7,
+        curve: 1.25,
+        essential: true
+    });
+}
 
 function collapseGlobalPanel() {
     document.getElementById('global-panel')?.classList.add('collapsed');
@@ -633,17 +734,11 @@ function restoreGlobalPanelAfterCountryPanelClose() {
     const globalPanel = document.getElementById('global-panel');
     const openButton = document.getElementById('global-panel-open-button');
 
-    if (!globalPanel || !openButton || globalPanelStateBeforeCountryPanel === null) return;
+    if (!globalPanel || !openButton) return;
 
     globalPanel.classList.remove('hidden');
-
-    if (globalPanelStateBeforeCountryPanel.wasCollapsed) {
-        globalPanel.classList.add('collapsed');
-        openButton.classList.remove('hidden');
-    } else {
-        globalPanel.classList.remove('collapsed');
-        openButton.classList.add('hidden');
-    }
+    globalPanel.classList.add('collapsed');
+    openButton.classList.remove('hidden');
 
     globalPanelStateBeforeCountryPanel = null;
 }
@@ -914,7 +1009,16 @@ function setupDisasterTypeFilter() {
 }
 
 function toggleDisasterTypeFilterPanel() {
-    document.getElementById('disaster-type-checkbox-panel')?.classList.toggle('hidden');
+    const panel = document.getElementById('disaster-type-checkbox-panel');
+    const toggle = document.getElementById('disaster-type-toggle');
+
+    if (!panel) return;
+
+    panel.classList.toggle('hidden');
+
+    if (toggle) {
+        toggle.classList.toggle('open', !panel.classList.contains('hidden'));
+    }
 }
 
 function selectAllDisasterTypes() {
@@ -1286,15 +1390,130 @@ function updateMap() {
 }
 
 // ─── Panel & interaction helpers (unchanged from original) ─────────────────
+function getWorldCountryFeatureByISO3(iso3) {
+    if (!iso3 || !worldGeoJSON || !Array.isArray(worldGeoJSON.features)) return null;
 
-function openPanel(country, geometry) {
+    return worldGeoJSON.features.find(feature => {
+        const props = feature.properties || {};
+
+        return [
+            props.ISO_A3,
+            props.ADM0_A3,
+            props.ISO_A3_EH,
+            props.iso_a3,
+            props._iso3
+        ].includes(iso3);
+    }) || null;
+}
+
+function focusMapOnCountryContinent(iso3) {
+    if (!iso3 || !window.ContinentPanel) return;
+
+    const continent = ContinentPanel.CONTINENT_BY_ISO3[iso3];
+    const view = CONTINENT_FOCUS_VIEWS[continent];
+
+    if (!view) return;
+
+    map.flyTo({
+        center: view.center,
+        zoom: view.zoom,
+        bearing: 0,
+        pitch: 0,
+        duration: 1500,
+        speed: 0.75,
+        curve: 1.35,
+        essential: true
+    });
+}
+
+function focusMapOnCountry(countryOrIso3, fallbackLngLat = null) {
+    const iso3 = typeof countryOrIso3 === 'string'
+        ? countryOrIso3
+        : countryOrIso3?.iso_3166_1_alpha_3 || countryOrIso3?._iso3;
+
+    const focusOverride = COUNTRY_FOCUS_OVERRIDES[iso3];
+
+    if (focusOverride) {
+        map.flyTo({
+            center: focusOverride.center,
+            zoom: focusOverride.zoom,
+            bearing: 0,
+            pitch: 0,
+            duration: 1400,
+            speed: 0.75,
+            curve: 1.35,
+            essential: true
+        });
+
+        return;
+    }
+
+    const countryFeature = getWorldCountryFeatureByISO3(iso3);
+
+    if (countryFeature) {
+        const bbox = turf.bbox(countryFeature);
+
+        map.fitBounds(bbox, {
+            padding: {
+                top: 120,
+                bottom: 120,
+                left: 120,
+                right: 460
+            },
+            maxZoom: 4.25,
+            duration: 1400,
+            linear: false,
+            essential: true
+        });
+
+        return;
+    }
+
+    if (!fallbackLngLat) return;
+
+    const center = Array.isArray(fallbackLngLat)
+        ? fallbackLngLat
+        : [fallbackLngLat.lng, fallbackLngLat.lat];
+
+    if (!Number.isFinite(center[0]) || !Number.isFinite(center[1])) return;
+
+    map.flyTo({
+        center,
+        zoom: Math.max(map.getZoom(), 2.8),
+        bearing: 0,
+        pitch: 0,
+        duration: 1400,
+        speed: 0.75,
+        curve: 1.35,
+        essential: true
+    });
+}
+
+function showCountryPanel(panel) {
+    panel.classList.remove('hidden');
+
+    panel.style.transition = 'none';
+    panel.style.opacity = '0';
+    panel.style.transform = 'translateY(calc(-50% + 28px))';
+
+    panel.offsetHeight;
+
+    panel.style.transition = '';
+
+    requestAnimationFrame(() => {
+        panel.style.opacity = '1';
+        panel.style.transform = 'translateY(-50%)';
+    });
+}
+
+function openPanel(country, geometry, focusLngLat = null) {
     const panel = document.getElementById('panel');
     const margin = 20;
     panel.style.left = '';
     panel.style.right = margin + 'px';
     panel.style.top = '50%';
-    panel.style.transform = 'translateY(-50%)';
-    panel.classList.remove('hidden');
+    showCountryPanel(panel);
+    focusMapOnCountry(country, focusLngLat);
 
     hideGlobalPanelWhileCountryPanelIsOpen();
 
@@ -1322,8 +1541,8 @@ function openPanelFromCartogram(feature) {
     panel.style.left = '';
     panel.style.right = margin + 'px';
     panel.style.top = '50%';
-    panel.style.transform = 'translateY(-50%)';
-    panel.classList.remove('hidden');
+    showCountryPanel(panel);
+    focusMapOnCountry(props._iso3);
 
     hideGlobalPanelWhileCountryPanelIsOpen();
 
@@ -1503,7 +1722,23 @@ function formatMoneyFromUsdThousands(value) {
 }
 
 function closePanel() {
-    document.getElementById('panel').classList.add('hidden');
+    const panel = document.getElementById('panel');
+
+    if (!panel || panel.classList.contains('hidden')) return;
+
+    panel.style.opacity = '0';
+    panel.style.transform = 'translateY(calc(-50% + 28px))';
+
+    window.setTimeout(() => {
+        panel.classList.add('hidden');
+        panel.style.opacity = '';
+        panel.style.transform = '';
+        panel.style.transition = '';
+    }, 220);
+
+    if (activeCountryPanel?.iso3) {
+        focusMapOnCountryContinent(activeCountryPanel.iso3);
+    }
     activeCountryPanel = null;
     restoreGlobalPanelAfterCountryPanelClose();
     if (selectedId !== null) {
