@@ -156,6 +156,7 @@ function setupTimeline() {
     const rangeLabel = document.getElementById('timeline-range-label');
     const yearEditor = document.getElementById('timeline-year-editor');
     const yearInput = document.getElementById('timeline-year-input');
+    const sliderContainer = document.querySelector('.timeline-sliders');
 
     lower.min = minTimelineYear;
     lower.max = maxTimelineYear;
@@ -170,8 +171,17 @@ function setupTimeline() {
 
     function refreshTimelineLabel() {
         document.getElementById('timeline-range-label').innerText =
-            `${timeLowerBound} - ${timeUpperBound}`;
+            timeLowerBound === timeUpperBound
+                ? `${timeLowerBound}`
+                : `${timeLowerBound} - ${timeUpperBound}`;
         renderTimelineHistogram();
+    }
+
+    function commitTimelineSelection() {
+        invalidateFeatureCaches();
+        renderGlobalPanel();
+        updateMap();
+        refreshOpenCountryPanel();
     }
 
     lower.addEventListener('input', () => {
@@ -183,12 +193,6 @@ function setupTimeline() {
         lower.value = timeLowerBound;
 
         refreshTimelineLabel();
-
-        invalidateFeatureCaches();
-        renderGlobalPanel();
-
-        updateMap();
-        refreshOpenCountryPanel();
     });
 
     upper.addEventListener('input', () => {
@@ -200,13 +204,84 @@ function setupTimeline() {
         upper.value = timeUpperBound;
 
         refreshTimelineLabel();
-
-        invalidateFeatureCaches();
-        renderGlobalPanel();
-
-        updateMap();
-        refreshOpenCountryPanel();
     });
+
+    lower.addEventListener('change', commitTimelineSelection);
+    upper.addEventListener('change', commitTimelineSelection);
+
+    // --- Begin: single-year drag interaction ---
+    let lockedSingleYearDrag = null;
+
+    function getYearFromSliderPointer(event) {
+        const rect = sliderContainer.getBoundingClientRect();
+        const position = Math.max(0, Math.min(event.clientX - rect.left, rect.width));
+        const ratio = rect.width === 0 ? 0 : position / rect.width;
+        return Math.round(minTimelineYear + ratio * (maxTimelineYear - minTimelineYear));
+    }
+
+    function refreshVisualTimelineOnly() {
+        refreshTimelineLabel();
+    }
+
+    sliderContainer.addEventListener('pointerdown', event => {
+        if (timeLowerBound !== timeUpperBound) return;
+
+        const rect = sliderContainer.getBoundingClientRect();
+        const ratio = (timeLowerBound - minTimelineYear) / (maxTimelineYear - minTimelineYear);
+        const handleX = rect.left + ratio * rect.width;
+
+        if (Math.abs(event.clientX - handleX) > 18) return;
+
+        lockedSingleYearDrag = {
+            startX: event.clientX,
+            target: null
+        };
+
+        sliderContainer.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    });
+
+    sliderContainer.addEventListener('pointermove', event => {
+        if (!lockedSingleYearDrag) return;
+
+        const dx = event.clientX - lockedSingleYearDrag.startX;
+
+        if (!lockedSingleYearDrag.target) {
+            if (Math.abs(dx) < 2) return;
+            lockedSingleYearDrag.target = dx < 0 ? 'lower' : 'upper';
+        }
+
+        const year = getYearFromSliderPointer(event);
+
+        if (lockedSingleYearDrag.target === 'lower') {
+            timeLowerBound = Math.min(year, timeUpperBound);
+            lower.value = timeLowerBound;
+        } else {
+            timeUpperBound = Math.max(year, timeLowerBound);
+            upper.value = timeUpperBound;
+        }
+
+        refreshVisualTimelineOnly();
+        event.preventDefault();
+    });
+
+    sliderContainer.addEventListener('pointerup', event => {
+        if (!lockedSingleYearDrag) return;
+        lockedSingleYearDrag = null;
+        commitTimelineSelection();
+        if (sliderContainer.hasPointerCapture(event.pointerId)) {
+            sliderContainer.releasePointerCapture(event.pointerId);
+        }
+    });
+
+    sliderContainer.addEventListener('pointercancel', event => {
+        lockedSingleYearDrag = null;
+        commitTimelineSelection();
+        if (sliderContainer.hasPointerCapture(event.pointerId)) {
+            sliderContainer.releasePointerCapture(event.pointerId);
+        }
+    });
+    // --- End: single-year drag interaction ---
 
     refreshTimelineLabel();
 
