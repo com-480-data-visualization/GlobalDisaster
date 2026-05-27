@@ -82,8 +82,6 @@
     </aside>
 
     <div id="controls">
-        <button id="btn-globe" onclick="toggleGlobe()">Disasters on Globe</button>
-        <button id="btn-country" onclick="toggleCountry()">Disasters in Countries</button>
         <button id="btn-home" onclick="resetMap()" title="Reset map" aria-label="Reset map">
             <i class="ti ti-home" aria-hidden="true"></i>
         </button>
@@ -225,6 +223,7 @@
                 <input id="timeline-year-input" type="number" aria-label="Selected year">
                 <button type="button" onclick="applyTimelineInputYear()">OK</button>
             </span>
+            <button id="timeline-play-btn" class="timeline-play-btn" onclick="toggleTimelinePlay()" title="Play through years">▶</button>
             <span id="timeline-max-label">2024</span>
         </div>
 

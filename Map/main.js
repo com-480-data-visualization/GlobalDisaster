@@ -1,7 +1,7 @@
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
-let globeActive = false;
-let countryActive = false;
+let globeActive = true;
+let countryActive = true;
 let hoveredId = null;
 let hoveredCartogramIso = null;
 let selectedCartogramIso = null;
@@ -25,7 +25,8 @@ let maxTimelineYear = null;
 
 let timeLowerBound = null;
 let timeUpperBound = null;
-
+let mapUpdateTimer = null;
+let timelinePlayInterval = null;
 
 // --- Dual-selection state ---
 // colorFeature: the feature driving choropleth color
@@ -143,6 +144,16 @@ function getDatasetMaxYear() {
     return Math.max(...years);
 }
 
+function debouncedMapUpdate() {
+    clearTimeout(mapUpdateTimer);
+    mapUpdateTimer = setTimeout(() => {
+        invalidateFeatureCaches();
+        renderGlobalPanel();
+        updateMap();
+        refreshOpenCountryPanel();
+    }, 150);
+}
+
 function setupTimeline() {
 
     minTimelineYear = getDatasetMinYear();
@@ -183,12 +194,7 @@ function setupTimeline() {
         lower.value = timeLowerBound;
 
         refreshTimelineLabel();
-
-        invalidateFeatureCaches();
-        renderGlobalPanel();
-
-        updateMap();
-        refreshOpenCountryPanel();
+        debouncedMapUpdate();
     });
 
     upper.addEventListener('input', () => {
@@ -200,13 +206,44 @@ function setupTimeline() {
         upper.value = timeUpperBound;
 
         refreshTimelineLabel();
-
-        invalidateFeatureCaches();
-        renderGlobalPanel();
-
-        updateMap();
-        refreshOpenCountryPanel();
+        debouncedMapUpdate();
     });
+
+    function updateSliderZIndex() {
+        const lowerVal = Number(lower.value);
+        const upperVal = Number(upper.value);
+        if (lowerVal >= upperVal) {
+            lower.style.zIndex = 6;
+            upper.style.zIndex = 5;
+        } else {
+            lower.style.zIndex = '';
+            upper.style.zIndex = '';
+        }
+    }
+
+    const sliderContainer = document.querySelector('.timeline-sliders');
+    sliderContainer.addEventListener('mousedown', (e) => {
+        const lowerVal = Number(lower.value);
+        const upperVal = Number(upper.value);
+        if (lowerVal !== upperVal) return; 
+    
+        const rect = sliderContainer.getBoundingClientRect();
+        const ratio = (e.clientX - rect.left) / rect.width;
+        const clickedYear = minTimelineYear + ratio * (maxTimelineYear - minTimelineYear);
+        const thumbYear = lowerVal;
+
+        if (clickedYear <= thumbYear) {
+            lower.style.zIndex = 6;
+            upper.style.zIndex = 5;
+        } else {
+            upper.style.zIndex = 6;
+            lower.style.zIndex = 5;
+        }
+    });
+    
+    lower.addEventListener('input', updateSliderZIndex);
+    upper.addEventListener('input', updateSliderZIndex);
+    updateSliderZIndex();
 
     refreshTimelineLabel();
 
@@ -1775,24 +1812,6 @@ function makeDraggable(el) {
     }
 }
 
-function toggleGlobe() {
-    globeActive = !globeActive;
-    clearHover();
-    document.getElementById('btn-globe').classList.toggle('active', globeActive);
-    if (!globeActive) BubbleOverlay.hide();
-    updateMap();
-}
-
-function toggleCountry() {
-    countryActive = !countryActive;
-    document.getElementById('btn-country').classList.toggle('active', countryActive);
-    if (!countryActive) {
-        closePanel();
-        clearHover();
-        map.getCanvas().style.cursor = '';
-    }
-}
-
 function clearHover() {
     if (hoveredId !== null) {
         map.setFeatureState(
@@ -2053,6 +2072,7 @@ function updateCategoricalLegend(featureData, legend, legendTitle, legendItems) 
 
 function resetMap() {
     // Reset feature selections
+    stopTimelinePlay();
     colorFeature = null;
     distortFeature = null;
     document.querySelectorAll('input[name="feature"]').forEach(input => {
@@ -2074,12 +2094,6 @@ function resetMap() {
     if (lower) { lower.value = minTimelineYear; }
     if (upper) { upper.value = maxTimelineYear; }
     document.getElementById('timeline-range-label').innerText = `${minTimelineYear} - ${maxTimelineYear}`;
-
-    // Reset globe/country modes
-    globeActive = false;
-    countryActive = false;
-    document.getElementById('btn-globe').classList.remove('active');
-    document.getElementById('btn-country').classList.remove('active');
 
     // Close any open panels
     closePanel();
@@ -2105,5 +2119,65 @@ function closeAbout(event) {
     // Close if clicking the backdrop or the close button directly
     if (!event || event.target === document.getElementById('about-overlay') || event.currentTarget.classList.contains('about-close')) {
         document.getElementById('about-overlay').classList.add('hidden');
+    }
+}
+
+function toggleTimelinePlay() {
+    if (timelinePlayInterval) {
+        stopTimelinePlay();
+    } else {
+        startTimelinePlay();
+    }
+}
+
+function startTimelinePlay() {
+    const btn = document.getElementById('timeline-play-btn');
+    btn.textContent = '■';
+    btn.classList.add('playing');
+
+    // Save the user-selected end year
+    const targetYear = timeUpperBound;
+
+    // Start playback from lower bound
+    let currentYear = timeLowerBound;
+
+    // Collapse range to starting point
+    timeUpperBound = currentYear;
+
+    document.getElementById('timeline-upper').value = currentYear;
+
+    timelinePlayInterval = setInterval(() => {
+        if (currentYear >= targetYear) {
+            stopTimelinePlay();
+            return;
+        }
+
+        currentYear++;
+
+        timeUpperBound = currentYear;
+
+        document.getElementById('timeline-upper').value = currentYear;
+
+        document.getElementById('timeline-range-label').innerText =
+            timeLowerBound === timeUpperBound
+                ? `${currentYear}`
+                : `${timeLowerBound} - ${currentYear}`;
+
+        renderTimelineHistogram();
+        invalidateFeatureCaches();
+        renderGlobalPanel();
+        updateMap();
+        refreshOpenCountryPanel();
+
+    }, 120);
+}
+
+function stopTimelinePlay() {
+    clearInterval(timelinePlayInterval);
+    timelinePlayInterval = null;
+    const btn = document.getElementById('timeline-play-btn');
+    if (btn) {
+        btn.textContent = '▶';
+        btn.classList.remove('playing');
     }
 }
