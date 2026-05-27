@@ -1,0 +1,720 @@
+{
+  "total_events": 17756,
+  "country_count": 220,
+  "year_min": 1900,
+  "year_max": 2026,
+  "data_range_label": "1900–2026",
+  "avg_events_per_year": 139.8,
+  "source": "EM-DAT",
+  "most_common_types": [
+    {
+      "type": "Flood",
+      "count": 6175,
+      "percentage": 34.8
+    },
+    {
+      "type": "Storm",
+      "count": 5053,
+      "percentage": 28.5
+    },
+    {
+      "type": "Earthquake",
+      "count": 1650,
+      "percentage": 9.3
+    },
+    {
+      "type": "Epidemic",
+      "count": 1526,
+      "percentage": 8.6
+    },
+    {
+      "type": "Mass movement (wet)",
+      "count": 872,
+      "percentage": 4.9
+    },
+    {
+      "type": "Drought",
+      "count": 803,
+      "percentage": 4.5
+    },
+    {
+      "type": "Extreme temperature",
+      "count": 729,
+      "percentage": 4.1
+    },
+    {
+      "type": "Wildfire",
+      "count": 514,
+      "percentage": 2.9
+    }
+  ],
+  "top_regions_by_event_count": [
+    {
+      "region": "Asia",
+      "event_count": 7105,
+      "percentage": 40.0
+    },
+    {
+      "region": "Americas",
+      "event_count": 4430,
+      "percentage": 24.9
+    },
+    {
+      "region": "Africa",
+      "event_count": 3272,
+      "percentage": 18.4
+    },
+    {
+      "region": "Europe",
+      "event_count": 2228,
+      "percentage": 12.5
+    },
+    {
+      "region": "Oceania",
+      "event_count": 721,
+      "percentage": 4.1
+    }
+  ],
+  "events_per_year": [
+    {
+      "year": 1900,
+      "count": 7
+    },
+    {
+      "year": 1901,
+      "count": 2
+    },
+    {
+      "year": 1902,
+      "count": 10
+    },
+    {
+      "year": 1903,
+      "count": 14
+    },
+    {
+      "year": 1904,
+      "count": 4
+    },
+    {
+      "year": 1905,
+      "count": 8
+    },
+    {
+      "year": 1906,
+      "count": 11
+    },
+    {
+      "year": 1907,
+      "count": 6
+    },
+    {
+      "year": 1908,
+      "count": 3
+    },
+    {
+      "year": 1909,
+      "count": 18
+    },
+    {
+      "year": 1910,
+      "count": 18
+    },
+    {
+      "year": 1911,
+      "count": 10
+    },
+    {
+      "year": 1912,
+      "count": 7
+    },
+    {
+      "year": 1913,
+      "count": 6
+    },
+    {
+      "year": 1914,
+      "count": 8
+    },
+    {
+      "year": 1915,
+      "count": 7
+    },
+    {
+      "year": 1916,
+      "count": 4
+    },
+    {
+      "year": 1917,
+      "count": 8
+    },
+    {
+      "year": 1918,
+      "count": 8
+    },
+    {
+      "year": 1919,
+      "count": 5
+    },
+    {
+      "year": 1920,
+      "count": 13
+    },
+    {
+      "year": 1921,
+      "count": 2
+    },
+    {
+      "year": 1922,
+      "count": 7
+    },
+    {
+      "year": 1923,
+      "count": 17
+    },
+    {
+      "year": 1924,
+      "count": 10
+    },
+    {
+      "year": 1925,
+      "count": 13
+    },
+    {
+      "year": 1926,
+      "count": 19
+    },
+    {
+      "year": 1927,
+      "count": 10
+    },
+    {
+      "year": 1928,
+      "count": 17
+    },
+    {
+      "year": 1929,
+      "count": 5
+    },
+    {
+      "year": 1930,
+      "count": 22
+    },
+    {
+      "year": 1931,
+      "count": 14
+    },
+    {
+      "year": 1932,
+      "count": 15
+    },
+    {
+      "year": 1933,
+      "count": 12
+    },
+    {
+      "year": 1934,
+      "count": 13
+    },
+    {
+      "year": 1935,
+      "count": 16
+    },
+    {
+      "year": 1936,
+      "count": 20
+    },
+    {
+      "year": 1937,
+      "count": 11
+    },
+    {
+      "year": 1938,
+      "count": 7
+    },
+    {
+      "year": 1939,
+      "count": 11
+    },
+    {
+      "year": 1940,
+      "count": 23
+    },
+    {
+      "year": 1941,
+      "count": 13
+    },
+    {
+      "year": 1942,
+      "count": 12
+    },
+    {
+      "year": 1943,
+      "count": 16
+    },
+    {
+      "year": 1944,
+      "count": 15
+    },
+    {
+      "year": 1945,
+      "count": 17
+    },
+    {
+      "year": 1946,
+      "count": 17
+    },
+    {
+      "year": 1947,
+      "count": 14
+    },
+    {
+      "year": 1948,
+      "count": 25
+    },
+    {
+      "year": 1949,
+      "count": 21
+    },
+    {
+      "year": 1950,
+      "count": 28
+    },
+    {
+      "year": 1951,
+      "count": 31
+    },
+    {
+      "year": 1952,
+      "count": 30
+    },
+    {
+      "year": 1953,
+      "count": 37
+    },
+    {
+      "year": 1954,
+      "count": 36
+    },
+    {
+      "year": 1955,
+      "count": 34
+    },
+    {
+      "year": 1956,
+      "count": 39
+    },
+    {
+      "year": 1957,
+      "count": 28
+    },
+    {
+      "year": 1958,
+      "count": 24
+    },
+    {
+      "year": 1959,
+      "count": 37
+    },
+    {
+      "year": 1960,
+      "count": 39
+    },
+    {
+      "year": 1961,
+      "count": 31
+    },
+    {
+      "year": 1962,
+      "count": 31
+    },
+    {
+      "year": 1963,
+      "count": 44
+    },
+    {
+      "year": 1964,
+      "count": 63
+    },
+    {
+      "year": 1965,
+      "count": 68
+    },
+    {
+      "year": 1966,
+      "count": 83
+    },
+    {
+      "year": 1967,
+      "count": 79
+    },
+    {
+      "year": 1968,
+      "count": 82
+    },
+    {
+      "year": 1969,
+      "count": 78
+    },
+    {
+      "year": 1970,
+      "count": 80
+    },
+    {
+      "year": 1971,
+      "count": 62
+    },
+    {
+      "year": 1972,
+      "count": 60
+    },
+    {
+      "year": 1973,
+      "count": 63
+    },
+    {
+      "year": 1974,
+      "count": 68
+    },
+    {
+      "year": 1975,
+      "count": 59
+    },
+    {
+      "year": 1976,
+      "count": 86
+    },
+    {
+      "year": 1977,
+      "count": 138
+    },
+    {
+      "year": 1978,
+      "count": 133
+    },
+    {
+      "year": 1979,
+      "count": 114
+    },
+    {
+      "year": 1980,
+      "count": 124
+    },
+    {
+      "year": 1981,
+      "count": 129
+    },
+    {
+      "year": 1982,
+      "count": 150
+    },
+    {
+      "year": 1983,
+      "count": 201
+    },
+    {
+      "year": 1984,
+      "count": 147
+    },
+    {
+      "year": 1985,
+      "count": 171
+    },
+    {
+      "year": 1986,
+      "count": 168
+    },
+    {
+      "year": 1987,
+      "count": 221
+    },
+    {
+      "year": 1988,
+      "count": 230
+    },
+    {
+      "year": 1989,
+      "count": 186
+    },
+    {
+      "year": 1990,
+      "count": 290
+    },
+    {
+      "year": 1991,
+      "count": 267
+    },
+    {
+      "year": 1992,
+      "count": 230
+    },
+    {
+      "year": 1993,
+      "count": 262
+    },
+    {
+      "year": 1994,
+      "count": 254
+    },
+    {
+      "year": 1995,
+      "count": 275
+    },
+    {
+      "year": 1996,
+      "count": 270
+    },
+    {
+      "year": 1997,
+      "count": 323
+    },
+    {
+      "year": 1998,
+      "count": 362
+    },
+    {
+      "year": 1999,
+      "count": 412
+    },
+    {
+      "year": 2000,
+      "count": 501
+    },
+    {
+      "year": 2001,
+      "count": 427
+    },
+    {
+      "year": 2002,
+      "count": 487
+    },
+    {
+      "year": 2003,
+      "count": 386
+    },
+    {
+      "year": 2004,
+      "count": 393
+    },
+    {
+      "year": 2005,
+      "count": 482
+    },
+    {
+      "year": 2006,
+      "count": 458
+    },
+    {
+      "year": 2007,
+      "count": 446
+    },
+    {
+      "year": 2008,
+      "count": 389
+    },
+    {
+      "year": 2009,
+      "count": 388
+    },
+    {
+      "year": 2010,
+      "count": 433
+    },
+    {
+      "year": 2011,
+      "count": 354
+    },
+    {
+      "year": 2012,
+      "count": 371
+    },
+    {
+      "year": 2013,
+      "count": 358
+    },
+    {
+      "year": 2014,
+      "count": 342
+    },
+    {
+      "year": 2015,
+      "count": 397
+    },
+    {
+      "year": 2016,
+      "count": 350
+    },
+    {
+      "year": 2017,
+      "count": 371
+    },
+    {
+      "year": 2018,
+      "count": 337
+    },
+    {
+      "year": 2019,
+      "count": 438
+    },
+    {
+      "year": 2020,
+      "count": 414
+    },
+    {
+      "year": 2021,
+      "count": 437
+    },
+    {
+      "year": 2022,
+      "count": 435
+    },
+    {
+      "year": 2023,
+      "count": 461
+    },
+    {
+      "year": 2024,
+      "count": 445
+    },
+    {
+      "year": 2025,
+      "count": 369
+    },
+    {
+      "year": 2026,
+      "count": 39
+    }
+  ],
+  "deadliest_events_all_time": [
+    {
+      "id": "1931-0007-CHN",
+      "iso3": "CHN",
+      "country": "China",
+      "type": "Flood",
+      "subtype": "Riverine flood",
+      "location": null,
+      "start_year": 1931,
+      "end_year": 1931,
+      "total_deaths": 3700000,
+      "total_affected": null,
+      "total_damage_usd_000": 1400000
+    },
+    {
+      "id": "1928-9002-CHN",
+      "iso3": "CHN",
+      "country": "China",
+      "type": "Drought",
+      "subtype": "Drought",
+      "location": "Shensi, Honan, Kansu",
+      "start_year": 1928,
+      "end_year": 1928,
+      "total_deaths": 3000000,
+      "total_affected": null,
+      "total_damage_usd_000": null
+    },
+    {
+      "id": "1917-0002-SUN",
+      "iso3": "RUS",
+      "country": "Soviet Union",
+      "type": "Epidemic",
+      "subtype": "Infectious disease (General)",
+      "location": "Nationwide",
+      "start_year": 1917,
+      "end_year": 1917,
+      "total_deaths": 2500000,
+      "total_affected": null,
+      "total_damage_usd_000": null
+    },
+    {
+      "id": "1959-0006-CHN",
+      "iso3": "CHN",
+      "country": "China",
+      "type": "Flood",
+      "subtype": "Flood (General)",
+      "location": "North",
+      "start_year": 1959,
+      "end_year": 1961,
+      "total_deaths": 2000000,
+      "total_affected": null,
+      "total_damage_usd_000": null
+    },
+    {
+      "id": "1920-0001-IND",
+      "iso3": "IND",
+      "country": "India",
+      "type": "Epidemic",
+      "subtype": "Bacterial disease",
+      "location": null,
+      "start_year": 1920,
+      "end_year": 1920,
+      "total_deaths": 2000000,
+      "total_affected": null,
+      "total_damage_usd_000": null
+    },
+    {
+      "id": "1943-9002-BGD",
+      "iso3": "BGD",
+      "country": "Bangladesh",
+      "type": "Drought",
+      "subtype": "Drought",
+      "location": null,
+      "start_year": 1943,
+      "end_year": 1943,
+      "total_deaths": 1900000,
+      "total_affected": null,
+      "total_damage_usd_000": null
+    },
+    {
+      "id": "1965-9073-IND",
+      "iso3": "IND",
+      "country": "India",
+      "type": "Drought",
+      "subtype": "Drought",
+      "location": "Nationwide except south",
+      "start_year": 1965,
+      "end_year": 1967,
+      "total_deaths": 1500000,
+      "total_affected": 100000000,
+      "total_damage_usd_000": 100000
+    },
+    {
+      "id": "1942-9003-IND",
+      "iso3": "IND",
+      "country": "India",
+      "type": "Drought",
+      "subtype": "Drought",
+      "location": "Calcutta, Bengal region",
+      "start_year": 1942,
+      "end_year": 1942,
+      "total_deaths": 1500000,
+      "total_affected": null,
+      "total_damage_usd_000": null
+    },
+    {
+      "id": "1909-0001-CHN",
+      "iso3": "CHN",
+      "country": "China",
+      "type": "Epidemic",
+      "subtype": "Bacterial disease",
+      "location": null,
+      "start_year": 1909,
+      "end_year": 1909,
+      "total_deaths": 1500000,
+      "total_affected": null,
+      "total_damage_usd_000": null
+    },
+    {
+      "id": "1907-0001-IND",
+      "iso3": "IND",
+      "country": "India",
+      "type": "Epidemic",
+      "subtype": "Bacterial disease",
+      "location": null,
+      "start_year": 1907,
+      "end_year": 1907,
+      "total_deaths": 1300000,
+      "total_affected": null,
+      "total_damage_usd_000": null
+    }
+  ]
+}
