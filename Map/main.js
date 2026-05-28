@@ -194,7 +194,6 @@ function setupTimeline() {
         lower.value = timeLowerBound;
 
         refreshTimelineLabel();
-        debouncedMapUpdate();
     });
 
     upper.addEventListener('input', () => {
@@ -206,44 +205,65 @@ function setupTimeline() {
         upper.value = timeUpperBound;
 
         refreshTimelineLabel();
-        debouncedMapUpdate();
     });
 
-    function updateSliderZIndex() {
-        const lowerVal = Number(lower.value);
-        const upperVal = Number(upper.value);
-        if (lowerVal >= upperVal) {
-            lower.style.zIndex = 6;
-            upper.style.zIndex = 5;
-        } else {
-            lower.style.zIndex = '';
-            upper.style.zIndex = '';
-        }
-    }
+    lower.addEventListener('change', debouncedMapUpdate);
+    upper.addEventListener('change', debouncedMapUpdate);
 
     const sliderContainer = document.querySelector('.timeline-sliders');
-    sliderContainer.addEventListener('mousedown', (e) => {
-        const lowerVal = Number(lower.value);
-        const upperVal = Number(upper.value);
-        if (lowerVal !== upperVal) return; 
-    
-        const rect = sliderContainer.getBoundingClientRect();
-        const ratio = (e.clientX - rect.left) / rect.width;
-        const clickedYear = minTimelineYear + ratio * (maxTimelineYear - minTimelineYear);
-        const thumbYear = lowerVal;
 
-        if (clickedYear <= thumbYear) {
-            lower.style.zIndex = 6;
-            upper.style.zIndex = 5;
-        } else {
-            upper.style.zIndex = 6;
-            lower.style.zIndex = 5;
-        }
+    let lockedSingleYearDrag = null;
+
+    function getYearFromSliderPointer(event) {
+        const rect = sliderContainer.getBoundingClientRect();
+        const position = Math.max(0, Math.min(event.clientX - rect.left, rect.width));
+        const ratio = rect.width === 0 ? 0 : position / rect.width;
+        return Math.round(minTimelineYear + ratio * (maxTimelineYear - minTimelineYear));
+    }
+
+    sliderContainer.addEventListener('pointerdown', event => {
+        if (timeLowerBound !== timeUpperBound) return;
+        const rect = sliderContainer.getBoundingClientRect();
+        const ratio = (timeLowerBound - minTimelineYear) / (maxTimelineYear - minTimelineYear);
+        const handleX = rect.left + ratio * rect.width;
+        if (Math.abs(event.clientX - handleX) > 18) return;
+        lockedSingleYearDrag = { startX: event.clientX, target: null };
+        sliderContainer.setPointerCapture(event.pointerId);
+        event.preventDefault();
     });
-    
-    lower.addEventListener('input', updateSliderZIndex);
-    upper.addEventListener('input', updateSliderZIndex);
-    updateSliderZIndex();
+
+    sliderContainer.addEventListener('pointermove', event => {
+        if (!lockedSingleYearDrag) return;
+        const dx = event.clientX - lockedSingleYearDrag.startX;
+        if (!lockedSingleYearDrag.target) {
+            if (Math.abs(dx) < 2) return;
+            lockedSingleYearDrag.target = dx < 0 ? 'lower' : 'upper';
+        }
+        const year = getYearFromSliderPointer(event);
+        if (lockedSingleYearDrag.target === 'lower') {
+            timeLowerBound = Math.min(year, timeUpperBound);
+            lower.value = timeLowerBound;
+        } else {
+            timeUpperBound = Math.max(year, timeLowerBound);
+            upper.value = timeUpperBound;
+        }
+        refreshTimelineLabel();
+        event.preventDefault();
+    });
+
+    sliderContainer.addEventListener('pointerup', event => {
+        if (!lockedSingleYearDrag) return;
+        lockedSingleYearDrag = null;
+        debouncedMapUpdate();
+        if (sliderContainer.hasPointerCapture(event.pointerId))
+            sliderContainer.releasePointerCapture(event.pointerId);
+    });
+
+    sliderContainer.addEventListener('pointercancel', event => {
+        lockedSingleYearDrag = null;
+        if (sliderContainer.hasPointerCapture(event.pointerId))
+            sliderContainer.releasePointerCapture(event.pointerId);
+    });
 
     refreshTimelineLabel();
 
@@ -314,12 +334,6 @@ function applyTimelineInputYear() {
     yearEditor.classList.add('hidden');
     rangeLabel.classList.remove('hidden');
 }
-
-
-
-
-
-
 
 
 const map = new mapboxgl.Map({
