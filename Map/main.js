@@ -27,11 +27,12 @@ let timeLowerBound = null;
 let timeUpperBound = null;
 let mapUpdateTimer = null;
 let timelinePlayInterval = null;
+let dualFeatureTipShown = false;
 
 // --- Dual-selection state ---
 // colorFeature: the feature driving choropleth color
 // distortFeature: the feature driving cartogram distortion (null if none)
-let colorFeature = 'disaster-number';
+let colorFeature = null;
 let distortFeature = null;
 
 // Raw world GeoJSON for cartogram distortion
@@ -58,11 +59,11 @@ const disasterTypeOrder = [
 const disasterTypeColors = {
     'Wildfire': '#d95f02',
     'Mass movement (wet)': '#8c6d31',
-    'Flood': '#1f78b4',
+    'Flood': '#5ba3d9',
     'Storm': '#6a3d9a',
-    'Earthquake': '#7f3b08',
+    'Earthquake': '#8B5E3C',
     'Drought': '#e6ab02',
-    'Epidemic': '#1b9e77',
+    'Epidemic': '#3aad6e', 
     'Volcanic activity': '#b2182b',
     'Glacial lake outburst flood': '#56b4e9',
     'Extreme temperature': '#e7298a',
@@ -84,26 +85,26 @@ const DISTORTABLE_FEATURES = new Set([
 const featureComputers = {
     'disaster-number': () => ({
         values: getCountryDisasterCounts(),
-        colors: ['#ffffff', '#d7f0f0', '#9bd4d0', '#58aaa7', '#197f83', '#00555f'],
-        scale: 'linear',
-        legendTitle: 'Natural disasters',
-        legendNoDataLabel: 'No data',
+        colors: ['#f7f7f7', '#E4EB8C', '#8DA750', '#537B2F', '#2D5128', '#142C14'],
+        scale: 'log',
+        legendTitle: 'Total disasters recorded',
+        legendNoDataLabel: 'No disasters recorded',
         legendFormatter: formatLegendNumber
     }),
     'average-deaths': () => ({
         values: getAverageDeathsByCountry(),
-        colors: ['#ffffff', '#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15'],
+        colors: ['#f7f7f7', '#fad4d4', '#e89090', '#d04444', '#a81818', '#6e0808'],
         scale: 'log',
-        legendTitle: 'Avg deaths / disaster (log scale)',
-        legendNoDataLabel: 'No registered deaths data',
+        legendTitle: 'Avg. deaths per disaster',
+        legendNoDataLabel: 'No death data available',
         legendFormatter: formatLegendNumber
     }),
     'average-damage': () => ({
         values: getAverageDamageByCountry(),
-        colors: ['#ffffff', '#edf8e9', '#bae4b3', '#74c476', '#31a354', '#006d2c'],
+        colors: ['#f7f7f7', '#d6e8f5', '#8db8d8', '#4a88b8', '#1a5490', '#0a2d5e'],
         scale: 'log',
-        legendTitle: 'Avg losses / disaster (log scale)',
-        legendNoDataLabel: 'No registered loss data',
+        legendTitle: 'Avg. economic damage per disaster',
+        legendNoDataLabel: 'No damage data available',
         legendFormatter: formatLegendNumber
     }),
     'dominant-disaster-type': () => ({
@@ -116,10 +117,10 @@ const featureComputers = {
     }),
     'average-affected': () => ({
         values: getAverageAffectedByCountry(),
-        colors: ['#ffffff', '#f2f0f7', '#cbc9e2', '#9e9ac8', '#756bb1', '#54278f'],
+        colors: ['#f7f7f7', '#fff7bc', '#fee391', '#fe9929', '#cc4c02', '#662506'],
         scale: 'log',
-        legendTitle: 'Avg affected / disaster (log scale)',
-        legendNoDataLabel: 'No registered affected data',
+        legendTitle: 'Avg. people affected per disaster',
+        legendNoDataLabel: 'No affected data available',
         legendFormatter: formatLegendNumber
     }),
 };
@@ -734,7 +735,13 @@ function startMapIntro() {
 
     requestAnimationFrame(() => {
         fadeOverlay?.classList.add('fade-out');
-        playOpeningEuropeAnimation();
+        map.flyTo({
+            ...EUROPE_INTRO_VIEW,
+            duration: 2300,
+            speed: 0.7,
+            curve: 1.25,
+            essential: true
+        });
     });
 
     window.setTimeout(() => {
@@ -742,27 +749,22 @@ function startMapIntro() {
     }, 1250);
 }
 
-function playOpeningEuropeAnimation() {
-    if (openingAnimationPlayed) return;
-    openingAnimationPlayed = true;
-
-    map.flyTo({
-        ...EUROPE_INTRO_VIEW,
-        duration: 2300,
-        speed: 0.7,
-        curve: 1.25,
-        essential: true
-    });
-}
-
 function collapseGlobalPanel() {
     document.getElementById('global-panel')?.classList.add('collapsed');
-    document.getElementById('global-panel-open-button')?.classList.remove('hidden');
+    const btn = document.getElementById('global-panel-open-button');
+    if (btn) {
+        btn.classList.remove('hidden');
+        requestAnimationFrame(() => btn.style.opacity = '1');
+    }
 }
 
 function expandGlobalPanel() {
     document.getElementById('global-panel')?.classList.remove('collapsed');
-    document.getElementById('global-panel-open-button')?.classList.add('hidden');
+    const btn = document.getElementById('global-panel-open-button');
+    if (btn) {
+        btn.style.opacity = '0';
+        setTimeout(() => btn.classList.add('hidden'), 350);
+    }
 }
 
 function hideGlobalPanelWhileCountryPanelIsOpen() {
@@ -1227,6 +1229,7 @@ function setupFeaturePanel() {
             } else if (distortFeature === null && !isCategorical && DISTORTABLE_FEATURES.has(value) && colorFeature !== value) {
                 // Second check → distortion (only if not categorical, not same as color)
                 distortFeature = value;
+                maybeShowDualFeatureTip();
             } else {
                 // Third+ check or categorical as second: replace color, drop distort
                 colorFeature = value;
@@ -1272,7 +1275,7 @@ function refreshFeatureTags() {
                 label.appendChild(tag);
             }
 
-            tag.textContent = 'shape';
+            tag.textContent = 'bubble';
             tag.dataset.role = 'distort';
 
         } else {
@@ -2024,7 +2027,7 @@ function updateLegend(featureData, distortData) {
 
     // Distortion note
     if (distortNote && distortData) {
-        distortNote.textContent = `Shape size → ${distortData.legendTitle}`;
+        distortNote.textContent = `Bubble size → ${distortData.legendTitle}`;
     } else if (distortNote) {
         distortNote.textContent = '';
     }
@@ -2113,9 +2116,6 @@ function resetMap() {
     closePanel();
     ContinentPanel.close();
 
-    // Fly to Switzerland
-    map.flyTo({ center: [8.2, 46.8], zoom: 4, duration: 1800 });
-
     // Refresh everything
     invalidateFeatureCaches();
     renderTimelineHistogram();
@@ -2123,6 +2123,35 @@ function resetMap() {
     refreshFeatureTags();
     BubbleOverlay.hide();
     updateMap();
+
+    map.flyTo({
+        ...EUROPE_INTRO_VIEW,
+        duration: 1800,
+        speed: 0.75,
+        curve: 1.35,
+        essential: true
+    });
+
+    map.once('idle', () => {
+        const chePoint = map.project([8.2, 46.8]);
+        const features = map.queryRenderedFeatures(chePoint, { layers: ['countries'] });
+        const che = features.find(f => f.properties.iso_3166_1_alpha_3 === 'CHE');
+
+        if (!che) return;
+
+        if (selectedId !== null) {
+            map.setFeatureState(
+                { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
+                { selected: false }
+            );
+        }
+        selectedId = che.id;
+        map.setFeatureState(
+            { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
+            { selected: true }
+        );
+        openPanel(che.properties, che.geometry, [8.2, 46.8]);
+    });
 }
 
 function openAbout() {
@@ -2183,7 +2212,7 @@ function startTimelinePlay() {
         updateMap();
         refreshOpenCountryPanel();
 
-    }, 120);
+    }, 160);
 }
 
 function stopTimelinePlay() {
@@ -2194,4 +2223,30 @@ function stopTimelinePlay() {
         btn.textContent = '▶';
         btn.classList.remove('playing');
     }
+}
+
+function maybeShowDualFeatureTip() {
+    if (dualFeatureTipShown || !distortFeature) return;
+    dualFeatureTipShown = true;
+
+    const tip = document.createElement('div');
+    tip.id = 'dual-feature-tip';
+    tip.innerHTML = `
+        <div class="dual-tip-content">
+            <strong>Two features selected!</strong>
+            <p>Country <span class="about-tag color">color</span> shows one metric.<br>
+            <span class="about-tag shape">Bubble size</span> shows the other.</p>
+            <button onclick="document.getElementById('dual-feature-tip').remove()">Got it</button>
+        </div>
+    `;
+    tip.style.cssText = `
+        position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+        background: white; border: 1px solid #d8d8d8; border-radius: 14px;
+        padding: 16px 20px; box-shadow: 0 8px 28px rgba(0,0,0,0.16);
+        z-index: 100; font-family: Helvetica, Arial, sans-serif;
+        text-align: center; max-width: 300px;
+        animation: tipFadeIn 0.3s ease;
+    `;
+    document.body.appendChild(tip);
+    setTimeout(() => tip?.remove(), 6000);
 }

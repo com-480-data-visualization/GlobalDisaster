@@ -37,7 +37,7 @@
         <div class="feature-options" aria-label="Feature to visualize">
 
             <label class="feature-option">
-                <input type="checkbox" name="feature" value="disaster-number" checked>
+                <input type="checkbox" name="feature" value="disaster-number">
                 <span>Number of natural disasters</span>
             </label>
 
@@ -95,47 +95,44 @@
         <div class="about-modal">
             <button class="about-close" onclick="closeAbout()">✕</button>
             <h2>Global Natural Disasters</h2>
-            <p class="about-source">Data source: EM-DAT International Disaster Database</p>
-
+            <p class="about-source">Data source: EM-DAT International Disaster Database · 1900–2024</p>
+        
             <div class="about-section">
-                <h3>Getting started</h3>
-                <p>Use the two buttons at the top left to activate the visualization modes:</p>
-                <ul>
-                    <li><strong>Disasters on Globe</strong> — activates the map visualization with country coloring.</li>
-                    <li><strong>Disasters in Countries</strong> — enables clicking on countries to see detailed statistics.</li>
-                </ul>
+                <h3>How it works</h3>
+                <p>The map is always active — select features from the left panel to color countries and add bubbles. Click any country to see detailed statistics.</p>
             </div>
-
+        
             <div class="about-section">
                 <h3>Choosing what to display</h3>
-                <p>The panel on the left lets you select up to two features at once:</p>
+                <p>Select up to two features from the left panel:</p>
                 <ul>
-                    <li>The <span class="about-tag color">color</span> tag shows which feature drives the country color (choropleth).</li>
-                    <li>The <span class="about-tag shape">shape</span> tag shows which feature drives bubble size — activating a second numeric feature switches to bubble map mode.</li>
+                    <li>The first feature gets a <span class="about-tag color">color</span> tag — it drives the choropleth country coloring.</li>
+                    <li>The second numeric feature gets a <span class="about-tag shape">bubble</span> tag — countries get proportional bubbles sized by that metric.</li>
+                    <li>Categorical features (e.g. dominant disaster type) can only be used for color.</li>
                 </ul>
             </div>
-
+        
             <div class="about-section">
-                <h3>Bubble map mode</h3>
-                <p>When two numeric features are selected, proportional bubbles appear over each country. You can:</p>
-                <ul>
-                    <li>Hover a bubble to highlight it and see its value.</li>
-                    <li>Click a bubble to open the country detail panel (requires <em>Disasters in Countries</em> to be active).</li>
-                    <li>Click on a continent background (between bubbles) to open the continent bubble panel.</li>
-                </ul>
+                <h3>Bubble mode</h3>
+                <p>When two numeric features are selected, bubbles appear over each country. Hover a bubble to see its value. Click a bubble to open the country detail panel.</p>
             </div>
-
-            <div class="about-section">
-                <h3>Filtering data</h3>
-                <ul>
-                    <li>Use the <strong>timeline slider</strong> at the bottom to filter by year range. Click the year label to jump to a specific year.</li>
-                    <li>Use <strong>Filter by disaster type</strong> in the left panel to include only certain disaster categories.</li>
-                </ul>
-            </div>
-
+        
             <div class="about-section">
                 <h3>Continent panel</h3>
-                <p>Clicking a continent background opens a side panel showing all countries in that continent as proportional bubbles. Hover any bubble to see the country's value.</p>
+                <p>In bubble mode, clicking on a continent's background (not a bubble) opens a side panel comparing all countries in that continent.</p>
+            </div>
+        
+            <div class="about-section">
+                <h3>Filtering</h3>
+                <ul>
+                    <li>Use the <strong>timeline slider</strong> at the bottom to filter by year or year range. Click the year label to jump to a specific year, or press ▶ to animate through time.</li>
+                    <li>Use <strong>Filter by disaster type</strong> in the left panel to focus on specific categories.</li>
+                </ul>
+            </div>
+        
+            <div class="about-section">
+                <h3>Country panel</h3>
+                <p>Click any country on the map to open a detail panel showing total disasters, deaths, economic damage, a timeline chart, and a breakdown by disaster type — all filtered by your current selection.</p>
             </div>
         </div>
     </div>
