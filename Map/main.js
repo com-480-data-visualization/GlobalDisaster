@@ -1216,6 +1216,11 @@ function setupFeaturePanel() {
                 } else if (distortFeature === value) {
                     distortFeature = null;
                 }
+
+                if (!distortFeature && ContinentPanel.isOpen()) {
+                    ContinentPanel.close();
+                }
+
                 refreshFeatureTags();
                 updateMap();
                 refreshOpenCountryPanel();
@@ -1234,6 +1239,11 @@ function setupFeaturePanel() {
                 // Third+ check or categorical as second: replace color, drop distort
                 colorFeature = value;
                 distortFeature = null;
+
+                if (ContinentPanel.isOpen()) {
+                    ContinentPanel.close();
+                }
+
                 // Uncheck everything else
                 featureInputs.forEach(other => {
                     if (other !== input) other.checked = false;
@@ -1964,6 +1974,12 @@ function createCategoricalExpression(featureData) {
     return expression;
 }
 
+function roundToMagnitude(value) {
+    if (!Number.isFinite(value) || value <= 0) return value;
+    const mag = Math.pow(10, Math.floor(Math.log10(value)));
+    return Math.ceil(value / mag) * mag;
+}
+
 function createHeatmapStops(featureData) {
     const values = Object.values(featureData.values);
     const max = Math.max(...values, 0);
@@ -1972,7 +1988,7 @@ function createHeatmapStops(featureData) {
 
     const minPositive = Math.min(...positiveValues);
     const colors = featureData.colors;
-    const roundThreshold = value => max >= 10 ? Math.ceil(value) : roundMetricValue(value, 1);
+    const roundThreshold = value => roundToMagnitude(value);
     const thresholds = featureData.scale === 'log'
         ? createLogThresholds(minPositive, max, colors.length - 1, roundThreshold)
         : [
@@ -2132,13 +2148,11 @@ function resetMap() {
         essential: true
     });
 
-    map.once('idle', () => {
+    map.once('moveend', () => {
         const chePoint = map.project([8.2, 46.8]);
         const features = map.queryRenderedFeatures(chePoint, { layers: ['countries'] });
         const che = features.find(f => f.properties.iso_3166_1_alpha_3 === 'CHE');
-
         if (!che) return;
-
         if (selectedId !== null) {
             map.setFeatureState(
                 { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },

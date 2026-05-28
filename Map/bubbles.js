@@ -46,36 +46,121 @@
                     'circle-stroke-opacity': 0.9
                 }
             });
+
+            let _mapTooltip = null;
+
+            function _showMapTooltip(props, mouseEvent) {
+                _hideMapTooltip();
+
+                const name = props._name || props._iso3;
+
+                let lines = [
+                    `<div style="font-weight:700;margin-bottom:6px">${name}</div>`
+                ];
+
+                // Bubble metric
+                if (props._value != null) {
+
+                    lines.push(`
+                        <div style="opacity:0.9">
+                            <span style="color:#f5c97a">●</span>
+                            ${props._valueLabel}:
+                            <strong>
+                                ${Number(props._value).toLocaleString(undefined, {
+                                    maximumFractionDigits: 1
+                                })}
+                            </strong>
+                        </div>
+                    `);
+                }
+
+                // Color metric
+                if (props._colorValue != null) {
+
+                    const colorVal =
+                        typeof props._colorValue === 'number'
+                            ? Number(props._colorValue).toLocaleString(undefined, {
+                                maximumFractionDigits: 1
+                            })
+                            : props._colorValue;
+
+                    lines.push(`
+                        <div style="opacity:0.9">
+                            <span style="color:#89b4fa">●</span>
+                            ${props._colorLabel}:
+                            <strong>${colorVal}</strong>
+                        </div>
+                    `);
+                }
+
+                const tt = document.createElement('div');
+                tt.id = 'bubble-map-tooltip';
+                tt.style.cssText = `
+                    position:fixed; z-index:9999;
+                    background:rgba(15,25,55,0.93); color:#fff;
+                    padding:8px 13px; border-radius:10px;
+                    font:13px/1.5 Helvetica,Arial,sans-serif;
+                    pointer-events:none; white-space:nowrap;
+                    box-shadow:0 4px 16px rgba(0,0,0,0.3);
+                `;
+                tt.innerHTML = lines.join('');
+                document.body.appendChild(tt);
+                _mapTooltip = tt;
+                _positionMapTooltip(mouseEvent);
+
+                // Follow mouse
+                _map.getCanvas().addEventListener('mousemove', _followTooltip);
+            }
+
+            function _followTooltip(e) {
+                if (_mapTooltip) _positionMapTooltip(e);
+            }
+
+            function _positionMapTooltip(e) {
+                if (!_mapTooltip) return;
+                const x = e.clientX, y = e.clientY;
+                const tw = _mapTooltip.offsetWidth, th = _mapTooltip.offsetHeight;
+                const vw = window.innerWidth, vh = window.innerHeight;
+                let left = x + 14, top = y - th - 10;
+                if (left + tw > vw - 10) left = x - tw - 14;
+                if (top < 10) top = y + 14;
+                _mapTooltip.style.left = left + 'px';
+                _mapTooltip.style.top  = top  + 'px';
+            }
+
+            function _hideMapTooltip() {
+                if (_mapTooltip) { _mapTooltip.remove(); _mapTooltip = null; }
+                _map.getCanvas().removeEventListener('mousemove', _followTooltip);
+            }
             
             _map.on('mouseenter', LAYER_ID, (e) => {
                 _map.getCanvas().style.cursor = 'pointer';
-                const iso = e.features[0].properties._iso3;  
+                const props = e.features[0].properties;
+                const iso = props._iso3;
                 if (iso) {
                     _map.setFeatureState({ source: SOURCE_ID, id: iso }, { hover: true });
                     _lastHoveredIso = iso;
                 }
+                _showMapTooltip(props, e.originalEvent);
             });
             
-            _map.on('mouseleave', LAYER_ID, (e) => {
+            _map.on('mouseleave', LAYER_ID, () => {
                 _map.getCanvas().style.cursor = '';
                 if (_lastHoveredIso) {
                     _map.setFeatureState({ source: SOURCE_ID, id: _lastHoveredIso }, { hover: false });
                     _lastHoveredIso = null;
                 }
+                _hideMapTooltip();
             });
             
             _map.on('mousemove', LAYER_ID, (e) => {
-                console.log('bubble mousemove fired', e.features[0]);
-                console.log('feature id:', e.features[0].id);
-                console.log('feature properties._iso3:', e.features[0].properties._iso3);
-                const iso = e.features[0].properties._iso3;;
+                const iso = e.features[0].properties._iso3;
                 if (iso !== _lastHoveredIso) {
-                    if (_lastHoveredIso) {
-                        _map.setFeatureState({ source: SOURCE_ID, id: _lastHoveredIso }, { hover: false });
-                    }
+                    if (_lastHoveredIso) _map.setFeatureState({ source: SOURCE_ID, id: _lastHoveredIso }, { hover: false });
                     _lastHoveredIso = iso;
                     _map.setFeatureState({ source: SOURCE_ID, id: iso }, { hover: true });
                 }
+                _showMapTooltip(e.features[0].properties, e.originalEvent);
             });
             
         },
@@ -125,17 +210,50 @@
                     _continentIndex[continent].push(iso3);
                 }
 
+                const distortF = window.distortFeature;
+                const colorF   = window.colorFeature;
+
+                const distortData =
+                    distortF &&
+                    window.featureComputers &&
+                    window.featureComputers[distortF]
+                        ? window.featureComputers[distortF]()
+                        : null;
+
+                const colorData =
+                    colorF &&
+                    window.featureComputers &&
+                    window.featureComputers[colorF]
+                        ? window.featureComputers[colorF]()
+                        : null;const iso2 = (p.ISO_A2 || '').toLowerCase();
+
+
+                const colorMetricValue =
+                    colorData && colorData.values
+                        ? colorData.values[iso3]
+                        : null;
+
                 features.push({
                     type: 'Feature',
                     geometry: { type: 'Point', coordinates: centroid },
+
                     properties: {
                         _iso3:        iso3,
                         _iso2:        (p.ISO_A2 || '').toLowerCase(),
                         _name:        p.ADMIN || p.NAME || iso3,
+
                         _radius:      radius,
                         _color:       fillColor,
                         _strokeColor: strokeColor,
+
+                        // bubble metric
                         _value:       value,
+                        _valueLabel:  distortData?.legendTitle || distortF || 'Bubble',
+
+                        // color metric
+                        _colorValue:  colorMetricValue,
+                        _colorLabel:  colorData?.legendTitle || colorF || 'Color',
+
                         _continent:   continent,
                     }
                 });
