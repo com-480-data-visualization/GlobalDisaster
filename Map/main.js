@@ -1465,7 +1465,7 @@ if (currentFilteredData.length === 0) {
             '#e8e8e8'
         ]);
         const colorMap = precomputeCountryColors(featureData);
-        BubbleOverlay.show(worldGeoJSON, distortData.values, colorMap, ContinentPanel.CONTINENT_BY_ISO3);
+        BubbleOverlay.show(worldGeoJSON, distortData.values, colorMap, ContinentPanel.CONTINENT_BY_ISO3, distortData.legendTitle, featureData.legendTitle, distortData.values, featureData.values);
     } else {
         // No bubbles — choropleth on countries
         const choropleth = featureData.legendType === 'categorical'

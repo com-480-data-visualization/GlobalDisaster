@@ -67,6 +67,8 @@
     let _hoveredContinent = null;
     let _mapInstance      = null;
     let _continentGeoJSON = null;
+    let _lastDistortLabel = '';
+    let _lastColorLabel   = '';
 
     // ── Public API ─────────────────────────────────────────────────────────
     window.ContinentPanel = {
@@ -408,7 +410,33 @@
                 g.appendChild(label);
             }
         });
-    
+        
+        // Metric legend
+        const sizeLabel = _lastDistortLabel || '';
+        const colLabel  = _lastColorLabel  || '';
+
+        if (sizeLabel) {
+            const leg1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            leg1.setAttribute('x', 10);
+            leg1.setAttribute('y', H - 30);
+            leg1.setAttribute('fill', '#f5c97a');
+            leg1.setAttribute('font-size', '10');
+            leg1.setAttribute('font-family', 'Helvetica, Arial, sans-serif');
+            leg1.textContent = `● Bubble size: ${sizeLabel}`;
+            g.appendChild(leg1);
+        }
+
+        if (colLabel) {
+            const leg2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            leg2.setAttribute('x', 10);
+            leg2.setAttribute('y', H - 18);
+            leg2.setAttribute('fill', '#89b4fa');
+            leg2.setAttribute('font-size', '10');
+            leg2.setAttribute('font-family', 'Helvetica, Arial, sans-serif');
+            leg2.textContent = `● Color: ${colLabel}`;
+            g.appendChild(leg2);
+        }
+
         // Continent footer label
         const contColor = CONTINENT_COLORS[continentName] || '#888';
         const footer = document.createElementNS('http://www.w3.org/2000/svg', 'text');
