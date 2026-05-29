@@ -50,6 +50,7 @@
             let _mapTooltip = null;
 
             function _showMapTooltip(props, mouseEvent) {
+                console.log('tooltip props:', JSON.stringify(props));
                 _hideMapTooltip();
 
                 const name = props._name || props._iso3;
@@ -75,7 +76,7 @@
                 }
 
                 // Color metric
-                if (props._colorValue != null) {
+                if (props._colorValue != null && props._colorValue !== '') {
 
                     const colorVal =
                         typeof props._colorValue === 'number'
@@ -165,7 +166,11 @@
             
         },
 
-        show: function (geoJSON, distortValues, colorMap, continentByISO) {
+        show: function (geoJSON, distortValues, colorMap, continentByISO, distortLabel, colorLabel, distortVals, colorVals) {
+            console.log('distortFeature:', window.distortFeature);
+            console.log('colorFeature:', window.colorFeature);
+            console.log('featureComputers:', window.featureComputers);
+            console.log('distortValues sample:', Object.entries(distortValues).slice(0,3));
             if (!_map || !geoJSON) return;
 
             const positiveVals = Object.values(distortValues).filter(v => v > 0);
@@ -179,6 +184,16 @@
 
             _continentIndex = {};
             const features  = [];
+
+            const valueLabel = distortLabel || 'Bubble metric';
+            const colorLabelText = colorLabel || 'Color metric';
+
+                const FEATURE_LABELS = {
+                    'disaster-number':   'Number of disasters',
+                    'average-deaths':    'Avg. deaths per disaster',
+                    'average-damage':    'Avg. economic damage per disaster',
+                    'average-affected':  'Avg. people affected per disaster',
+                };
 
             for (const feature of geoJSON.features) {
                 const p = feature.properties;
@@ -210,28 +225,7 @@
                     _continentIndex[continent].push(iso3);
                 }
 
-                const distortF = window.distortFeature;
-                const colorF   = window.colorFeature;
-
-                const distortData =
-                    distortF &&
-                    window.featureComputers &&
-                    window.featureComputers[distortF]
-                        ? window.featureComputers[distortF]()
-                        : null;
-
-                const colorData =
-                    colorF &&
-                    window.featureComputers &&
-                    window.featureComputers[colorF]
-                        ? window.featureComputers[colorF]()
-                        : null;const iso2 = (p.ISO_A2 || '').toLowerCase();
-
-
-                const colorMetricValue =
-                    colorData && colorData.values
-                        ? colorData.values[iso3]
-                        : null;
+                const colorMetricValue = colorVals ? (colorVals[iso3] ?? '') : '';
 
                 features.push({
                     type: 'Feature',
@@ -248,11 +242,11 @@
 
                         // bubble metric
                         _value:       value,
-                        _valueLabel:  distortData?.legendTitle || distortF || 'Bubble',
+                        _valueLabel:  valueLabel,
 
                         // color metric
-                        _colorValue:  colorMetricValue,
-                        _colorLabel:  colorData?.legendTitle || colorF || 'Color',
+                        _colorValue:  colorMetricValue ?? '',
+                        _colorLabel:  colorLabelText,
 
                         _continent:   continent,
                     }
