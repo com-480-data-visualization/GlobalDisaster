@@ -11,11 +11,10 @@ let averageDamageByCountry = null;
 let averageAffectedByCountry = null;
 let dominantDisasterTypeByCountry = null;
 let selectedId = null;
-let selectedFeature = null;
 let _hoveredMapContinent = null; 
 let _hoveredBubbleIso = null;
 
-let globalPanelStateBeforeCountryPanel = null;
+let globalPanelOpenButtonHideTimer = null;
 let activeCountryPanel = null;
 let selectedDisasterTypes = new Set();
 let allDisasterTypes = [];
@@ -417,9 +416,6 @@ const CONTINENT_FOCUS_VIEWS = {
     }
 };
 
-let openingAnimationPlayed = false;
-
-
 map.on('load', async () => {
     setupFeaturePanel();
     refreshFeatureTags();
@@ -590,7 +586,7 @@ map.on('click', 'countries', (e) => {
                 iso_3166_1: props._iso2,
                 iso_3166_1_alpha_3: props._iso3,
                 name_en: props._name
-            }, null, e.lngLat);
+            }, e.lngLat);
             return;
         }
         // No bubble under click — open continent panel
@@ -612,7 +608,7 @@ map.on('click', 'countries', (e) => {
         { selected: true }
     );
     clearHover();
-    openPanel(e.features[0].properties, e.features[0].geometry, e.lngLat);
+    openPanel(e.features[0].properties, e.lngLat);
 });
 
 
@@ -752,18 +748,33 @@ function startMapIntro() {
 function collapseGlobalPanel() {
     document.getElementById('global-panel')?.classList.add('collapsed');
     const btn = document.getElementById('global-panel-open-button');
+
+    if (globalPanelOpenButtonHideTimer) {
+        clearTimeout(globalPanelOpenButtonHideTimer);
+        globalPanelOpenButtonHideTimer = null;
+    }
+
     if (btn) {
         btn.classList.remove('hidden');
-        requestAnimationFrame(() => btn.style.opacity = '1');
+        btn.style.opacity = '1';
     }
 }
 
 function expandGlobalPanel() {
     document.getElementById('global-panel')?.classList.remove('collapsed');
     const btn = document.getElementById('global-panel-open-button');
+
+    if (globalPanelOpenButtonHideTimer) {
+        clearTimeout(globalPanelOpenButtonHideTimer);
+        globalPanelOpenButtonHideTimer = null;
+    }
+
     if (btn) {
         btn.style.opacity = '0';
-        setTimeout(() => btn.classList.add('hidden'), 350);
+        globalPanelOpenButtonHideTimer = setTimeout(() => {
+            btn.classList.add('hidden');
+            globalPanelOpenButtonHideTimer = null;
+        }, 350);
     }
 }
 
@@ -773,10 +784,9 @@ function hideGlobalPanelWhileCountryPanelIsOpen() {
 
     if (!globalPanel || !openButton) return;
 
-    if (globalPanelStateBeforeCountryPanel === null) {
-        globalPanelStateBeforeCountryPanel = {
-            wasCollapsed: globalPanel.classList.contains('collapsed')
-        };
+    if (globalPanelOpenButtonHideTimer) {
+        clearTimeout(globalPanelOpenButtonHideTimer);
+        globalPanelOpenButtonHideTimer = null;
     }
 
     globalPanel.classList.add('hidden');
@@ -789,11 +799,16 @@ function restoreGlobalPanelAfterCountryPanelClose() {
 
     if (!globalPanel || !openButton) return;
 
+    if (globalPanelOpenButtonHideTimer) {
+        clearTimeout(globalPanelOpenButtonHideTimer);
+        globalPanelOpenButtonHideTimer = null;
+    }
+
     globalPanel.classList.remove('hidden');
     globalPanel.classList.add('collapsed');
-    openButton.classList.remove('hidden');
 
-    globalPanelStateBeforeCountryPanel = null;
+    openButton.classList.remove('hidden');
+    openButton.style.opacity = '1';
 }
 
 function renderGlobalPanel() {
@@ -1337,29 +1352,6 @@ async function fetchWorldGeoJSON() {
     }
 }
 
-// Compute centroid of a flat ring of [lng, lat] pairs
-function ringCentroid(ring) {
-    let x = 0, y = 0;
-    for (const [lng, lat] of ring) { x += lng; y += lat; }
-    return [x / ring.length, y / ring.length];
-}
-
-// Compute centroid of a GeoJSON geometry
-function geometryCentroid(geometry) {
-    let allPoints = [];
-    if (geometry.type === 'Polygon') {
-        allPoints = geometry.coordinates[0];
-    } else if (geometry.type === 'MultiPolygon') {
-        // Use the largest polygon
-        let biggest = [];
-        for (const poly of geometry.coordinates) {
-            if (poly[0].length > biggest.length) biggest = poly[0];
-        }
-        allPoints = biggest;
-    }
-    return ringCentroid(allPoints);
-}
-
 // Precompute a {iso3 -> color} map from featureData (works for both numeric and categorical)
 function precomputeCountryColors(featureData) {
     const result = {};
@@ -1393,7 +1385,47 @@ function precomputeCountryColors(featureData) {
 
 // ─── Map update ────────────────────────────────────────────────────────────
 
+function clearMapVisualOverlays() {
+    if (map.getLayer('countries')) {
+        map.setPaintProperty('countries', 'fill-color', '#ffffff');
+        map.setPaintProperty('countries', 'fill-opacity', 1);
+    }
+
+    if (window.BubbleOverlay && typeof BubbleOverlay.hide === 'function') {
+        BubbleOverlay.hide();
+    }
+
+    const bubbleSource = map.getSource('bubble-source');
+    if (bubbleSource && typeof bubbleSource.setData === 'function') {
+        bubbleSource.setData({ type: 'FeatureCollection', features: [] });
+    }
+
+    const cartogramSource = map.getSource('cartogram-source');
+    if (cartogramSource && typeof cartogramSource.setData === 'function') {
+        cartogramSource.setData({ type: 'FeatureCollection', features: [] });
+    }
+
+    if (map.getLayer('cartogram-fill')) {
+        map.setLayoutProperty('cartogram-fill', 'visibility', 'none');
+    }
+
+    if (map.getLayer('cartogram-border')) {
+        map.setLayoutProperty('cartogram-border', 'visibility', 'none');
+    }
+
+    const legend = document.getElementById('heatmap-legend');
+    if (legend) {
+        legend.classList.add('hidden');
+    }
+}
+
 function updateMap() {
+    const currentFilteredData = getFilteredData();
+
+if (currentFilteredData.length === 0) {
+    clearMapVisualOverlays();
+    return;
+}
     if (!map.getLayer('countries')) return;
  
     const featureData = getSelectedFeatureData();
@@ -1570,7 +1602,7 @@ function showCountryPanel(panel) {
     });
 }
 
-function openPanel(country, geometry, focusLngLat = null) {
+function openPanel(country, focusLngLat = null) {
     const panel = document.getElementById('panel');
     const margin = 20;
     panel.style.left = '';
@@ -1587,11 +1619,8 @@ function openPanel(country, geometry, focusLngLat = null) {
     document.getElementById('country-name').innerText = country.name_en;
     document.getElementById('country-flag').src = `https://flagcdn.com/w80/${iso2}.png`;
 
-    activeCountryPanel = {
-        iso3,
-        fallbackName: country.name_en
-    };
-    renderCountryPanelContent(iso3, country.name_en, getFilteredData());
+    activeCountryPanel = { iso3 };
+    renderCountryPanelContent(iso3, getFilteredData());
 }
 
 function openPanelFromCartogram(feature) {
@@ -1619,11 +1648,8 @@ function openPanelFromCartogram(feature) {
     document.getElementById('country-flag').src =
         `https://flagcdn.com/w80/${iso2}.png`;
 
-    activeCountryPanel = {
-        iso3,
-        fallbackName: props.ADMIN || props.NAME || iso3
-    };
-    renderCountryPanelContent(iso3, props.ADMIN || props.NAME || iso3, getFilteredData());
+    activeCountryPanel = { iso3 };
+    renderCountryPanelContent(iso3, getFilteredData());
 }
 
 function refreshOpenCountryPanel() {
@@ -1635,12 +1661,11 @@ function refreshOpenCountryPanel() {
 
     renderCountryPanelContent(
         activeCountryPanel.iso3,
-        activeCountryPanel.fallbackName,
         getFilteredData()
     );
 }
 
-function renderCountryPanelContent(iso3, fallbackName, disasters) {
+function renderCountryPanelContent(iso3, disasters) {
     const container = document.getElementById('worst-by-country-container');
     const summary = getCountrySummary(iso3, disasters);
 
@@ -1664,7 +1689,6 @@ function renderCountryPanelContent(iso3, fallbackName, disasters) {
     const costliest = summary.costliest_disaster;
     const yearly = getCountryYearlySeries(iso3, disasters);
     const types = getCountryDisasterTypes(iso3, disasters);
-    const countryName = summary.country || fallbackName;
     const regionText = [summary.region, summary.subregion].filter(Boolean).join(' | ');
 
     container.innerHTML = `
@@ -1814,31 +1838,6 @@ function closePanel() {
     }
 }
 
-function makeDraggable(el) {
-    let startX, startY, startLeft, startTop;
-    el.addEventListener('mousedown', (e) => {
-        if (e.target.tagName === 'BUTTON') return;
-        e.stopPropagation();
-        startX = e.clientX;
-        startY = e.clientY;
-        startLeft = el.offsetLeft;
-        startTop = el.offsetTop;
-        el.style.transform = 'none';
-        document.addEventListener('mousemove', onDrag);
-        document.addEventListener('mouseup', stopDrag);
-    });
-    function onDrag(e) {
-        const newLeft = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, startLeft + e.clientX - startX));
-        const newTop = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, startTop + e.clientY - startY));
-        el.style.left = newLeft + 'px';
-        el.style.top = newTop + 'px';
-    }
-    function stopDrag() {
-        document.removeEventListener('mousemove', onDrag);
-        document.removeEventListener('mouseup', stopDrag);
-    }
-}
-
 function clearHover() {
     if (hoveredId !== null) {
         map.setFeatureState(
@@ -1881,33 +1880,6 @@ function getFilteredData() {
     return disasters;
 }
 
-
-function getNumericValue(disaster, columns) {
-    for (const column of columns) {
-        let value = null;
-
-        if (column === 'total_deaths') value = getDisasterDeaths(disaster);
-        else if (column === 'total_affected') value = getDisasterAffected(disaster);
-        else if (column === 'total_damage_usd_000') value = getDisasterDamage(disaster);
-        else value = disaster[column];
-
-        if (value !== undefined && value !== null && value !== '') {
-            const numberValue = Number(value);
-            if (Number.isFinite(numberValue)) return numberValue;
-        }
-    }
-    return null;
-}
-
-function roundMetricValue(value, decimals) {
-    const factor = 10 ** decimals;
-    return Math.round(value * factor) / factor;
-}
-
-function getAverageMetricByCountry(columns, decimals = 0) {
-    const metricGetter = disaster => getNumericValue(disaster, columns);
-    return getAverageMetricByCountryFromJSON(metricGetter, decimals, getFilteredData());
-}
 
 function getCountryDisasterCounts() {
     if (countryCounts) return countryCounts;
@@ -2164,7 +2136,7 @@ function resetMap() {
             { source: 'country-source', sourceLayer: 'country_boundaries', id: selectedId },
             { selected: true }
         );
-        openPanel(che.properties, che.geometry, [8.2, 46.8]);
+        openPanel(che.properties, [8.2, 46.8]);
     });
 }
 

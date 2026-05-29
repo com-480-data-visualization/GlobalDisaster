@@ -387,10 +387,6 @@ body {
     background: #2c5aa0;
 }
 
-#controls button.active {
-    background: #e3bb80;
-}
-
 /* Icon buttons in controls */
 #btn-home,
 #btn-about {
@@ -1113,67 +1109,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
-}
-
-.worst-by-country-section-title {
-    margin-bottom: 2px;
-
-    font-size: 10px;
-    font-weight: 800;
-
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-
-    color: #888;
-}
-
-.worst-by-country-badge {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    padding: 12px;
-
-    border-radius: 10px;
-    border: 1px solid #b3c9f0;
-    background: #e8f0fb;
-}
-
-.badge-top-row,
-.badge-bottom-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.badge-name {
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-
-    font-size: 13px;
-    font-weight: 700;
-
-    color: #1f3b73;
-}
-
-.badge-year {
-    font-size: 12px;
-    font-weight: 700;
-    color: #2c5aa0;
-}
-
-.badge-type {
-    font-size: 11px;
-    color: #555;
-}
-
-
-.badge-deaths {
-    font-size: 18px;
-    font-weight: 800;
-    color: #1f3b73;
 }
 
 .country-panel-subtitle {
