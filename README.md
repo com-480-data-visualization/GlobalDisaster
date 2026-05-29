@@ -1,5 +1,7 @@
 # Project of Data Visualization (COM-480)
 
+[Website: Global Disaster](https://com-480-data-visualization.github.io/GlobalDisaster/)
+
 | Student's name | SCIPER |
 | -------------- | ------ |
 | Mohammadamin Azarsa | 395085 |
@@ -88,6 +90,8 @@ Our work offers a different view on this dataset, with easy-to-use and interacti
 ## Milestone 3 (29th May, 5pm)
 
 **80% of the final grade**
+
+[Website: Global Disaster](https://com-480-data-visualization.github.io/GlobalDisaster/)
 
 Link to download the screencast : 
 
