@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Global Natural Disasters</title>
+
+    <!-- Mapbox -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="map"></div>
+    <div id="map-intro-fade" class="map-intro-fade"></div>
+
+    <div id="data-missing-overlay" class="data-missing-overlay hidden">
+        <div class="data-missing-card">
+            <h1>Missing data files</h1>
+            <p>The preprocessed JSON files are not available yet.</p>
+            <p>Run this command from the project root:</p>
+            <code>make prepare-data</code>
+        </div>
+    </div>
+
+    <aside id="feature-panel" class="feature-panel">
+        <h2>Feature to visualize</h2>
+
+        <p class="feature-panel-hint">
+            First selected feature controls country color.<br>
+            Second selected feature controls country shape distortion.
+        </p>
+
+        <div class="feature-options" aria-label="Feature to visualize">
+
+            <label class="feature-option">
+                <input type="checkbox" name="feature" value="disaster-number">
+                <span>Number of natural disasters</span>
+            </label>
+
+            <label class="feature-option">
+                <input type="checkbox" name="feature" value="average-deaths">
+                <span>Average deaths per disaster</span>
+            </label>
+
+            <label class="feature-option">
+                <input type="checkbox" name="feature" value="average-damage">
+                <span>Average economic losses per disaster</span>
+            </label>
+
+            <label class="feature-option">
+                <input type="checkbox" name="feature" value="average-affected">
+                <span>Average people affected per disaster</span>
+            </label>
+
+
+            <label class="feature-option">
+                <input type="checkbox" name="feature" value="dominant-disaster-type">
+                <span>Most represented disaster type</span>
+            </label>
+
+        </div>
+
+        <div class="disaster-type-filter">
+            <button id="disaster-type-toggle" class="disaster-type-toggle" type="button" onclick="toggleDisasterTypeFilterPanel()">
+                <span>Filter by disaster type</span>
+                <strong id="disaster-type-filter-summary">All</strong>
+            </button>
+
+            <div id="disaster-type-checkbox-panel" class="disaster-type-checkbox-panel hidden">
+                <div class="disaster-type-actions">
+                    <button type="button" onclick="selectAllDisasterTypes()">Select all</button>
+                    <button type="button" onclick="deselectAllDisasterTypes()">Deselect all</button>
+                </div>
+
+                <div id="disaster-type-checkbox-list" class="disaster-type-checkbox-list"></div>
+            </div>
+        </div>
+    </aside>
+
+    <div id="controls">
+        <button id="btn-home" onclick="resetMap()" title="Reset map" aria-label="Reset map">
+            <i class="ti ti-home" aria-hidden="true"></i>
+        </button>
+        <button id="btn-about" onclick="openAbout()" title="About" aria-label="About">
+            <i class="ti ti-question-mark" aria-hidden="true"></i>
+        </button>
+    </div>
+
+        <!-- About overlay -->
+    <div id="about-overlay" class="about-overlay hidden" onclick="closeAbout(event)">
+        <div class="about-modal">
+            <button class="about-close" onclick="closeAbout()">✕</button>
+            <h2>Global Natural Disasters</h2>
+            <p class="about-source">Data source: EM-DAT International Disaster Database · 1900–2024</p>
+        
+            <div class="about-section">
+                <h3>How it works</h3>
+                <p>The map is always active — select features from the left panel to color countries and add bubbles. Click any country to see detailed statistics.</p>
+            </div>
+        
+            <div class="about-section">
+                <h3>Choosing what to display</h3>
+                <p>Select up to two features from the left panel:</p>
+                <ul>
+                    <li>The first feature gets a <span class="about-tag color">color</span> tag — it drives the choropleth country coloring.</li>
+                    <li>The second numeric feature gets a <span class="about-tag shape">bubble</span> tag — countries get proportional bubbles sized by that metric.</li>
+                    <li>Categorical features (e.g. dominant disaster type) can only be used for color.</li>
+                </ul>
+            </div>
+        
+            <div class="about-section">
+                <h3>Bubble mode</h3>
+                <p>When two numeric features are selected, bubbles appear over each country. Hover a bubble to see its value. Click a bubble to open the country detail panel.</p>
+            </div>
+        
+            <div class="about-section">
+                <h3>Continent panel</h3>
+                <p>In bubble mode, clicking on a continent's background (not a bubble) opens a side panel comparing all countries in that continent.</p>
+            </div>
+        
+            <div class="about-section">
+                <h3>Filtering</h3>
+                <ul>
+                    <li>Use the <strong>timeline slider</strong> at the bottom to filter by year or year range. Click the year label to jump to a specific year, or press ▶ to animate through time.</li>
+                    <li>Use <strong>Filter by disaster type</strong> in the left panel to focus on specific categories.</li>
+                </ul>
+            </div>
+        
+            <div class="about-section">
+                <h3>Country panel</h3>
+                <p>Click any country on the map to open a detail panel showing total disasters, deaths, economic damage, a timeline chart, and a breakdown by disaster type — all filtered by your current selection.</p>
+            </div>
+        </div>
+    </div>
+
+    <aside id="heatmap-legend" class="heatmap-legend hidden" aria-label="Heatmap legend">
+        <h2>Natural disasters</h2>
+
+        <!-- Distortion explanation -->
+        <div id="legend-distort-note"></div>
+
+        <div id="heatmap-legend-items"></div>
+    </aside>
+
+    <aside id="global-panel" class="global-panel" aria-label="Global disaster overview">
+        <div class="global-panel-header">
+            <h2>Global Overview</h2>
+            <button class="global-panel-toggle" onclick="collapseGlobalPanel()" aria-label="Hide global overview">
+                <span>›</span>
+            </button>
+        </div>
+
+        <div class="global-panel-body">
+            <section class="global-mini-card">
+                <div class="global-section-title">Deadliest events (all time)</div>
+                <div id="global-deadliest-list" class="global-deadliest-list"></div>
+            </section>
+
+            <section class="global-mini-card">
+                <div class="global-section-title">Human impact by type</div>
+                <div id="global-impact-by-type" class="global-impact-plot"></div>
+            </section>
+
+            <section class="global-overview-card">
+                <div class="global-stat-row">
+                    <div class="global-stat-box">
+                        <strong id="global-total-events">—</strong>
+                        <span>total events</span>
+                    </div>
+                    <div class="global-stat-box">
+                        <strong id="global-country-count">—</strong>
+                        <span>countries</span>
+                    </div>
+                </div>
+
+                <div class="global-section-title">Most common types</div>
+                <div id="global-common-types" class="global-list-bars"></div>
+
+                <div class="global-divider"></div>
+
+                <div class="global-section-title">Top regions by event count</div>
+                <div id="global-top-regions" class="global-region-list"></div>
+
+                <div class="global-divider"></div>
+
+                <div class="global-section-title">Key facts</div>
+                <div class="global-key-facts">
+                    <div><span>Avg. events / year</span><strong id="global-avg-events">—</strong></div>
+                    <div><span>Data range</span><strong id="global-data-range">—</strong></div>
+                    <div><span>Source</span><strong id="global-source">—</strong></div>
+                </div>
+            </section>
+        </div>
+    </aside>
+
+    <button id="global-panel-open-button" class="global-panel-open-button hidden" onclick="expandGlobalPanel()" aria-label="Show global overview">
+        <span>‹</span>
+    </button>
+
+    <div id="panel" class="panel hidden">
+        <div class="panel-header">
+            <img id="country-flag" src="" alt="flag">
+            <h2 id="country-name">Country</h2>
+            <button class="close-btn" onclick="closePanel()">✕</button>
+        </div>
+
+        <div class="panel-body">
+            <div id="worst-by-country-container"></div>
+        </div>
+    </div>
+    <div id="timeline-container">
+        <div class="timeline-labels">
+            <span id="timeline-min-label">1900</span>
+            <span id="timeline-range-label" title="Click to select one year">1900 - 2024</span>
+            <span id="timeline-year-editor" class="hidden">
+                <input id="timeline-year-input" type="number" aria-label="Selected year">
+                <button type="button" onclick="applyTimelineInputYear()">OK</button>
+            </span>
+            <button id="timeline-play-btn" class="timeline-play-btn" onclick="toggleTimelinePlay()" title="Play through years">▶</button>
+            <span id="timeline-max-label">2024</span>
+        </div>
+
+        <div id="timeline-histogram" class="timeline-histogram" aria-hidden="true"></div>
+
+        <div class="timeline-sliders">
+            <input type="range" id="timeline-lower">
+            <input type="range" id="timeline-upper">
+        </div>
+    </div>
+
+
+    <script src="config.js"></script>
+    <script src="isoMapping.js"></script>
+    <script src="data.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="bubbles.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+    <script src="continent-panel.js"></script>  
+    <script src="main.js"></script>
+</body>
+</html>
