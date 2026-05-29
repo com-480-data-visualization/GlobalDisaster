@@ -89,6 +89,11 @@ Our work offers a different view on this dataset, with easy-to-use and interacti
 
 **80% of the final grade**
 
+Link to download the screencast : 
+
+https://www.swisstransfer.com/d/1bcf0837-4e0b-465c-b8d6-f8c0dc88a66a
+
+The process book may be found in the milestones folder.
 
 ## Late policy
 
